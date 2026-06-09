@@ -1,4 +1,4 @@
-import { verifyToken } from '../services/authServices.js';
+import { verifyToken } from '../services/authService.js';
 import { AUTH_COOKIE_NAME } from '../config/constants.js';
 import { AppError } from '../utils/errors.js';
 

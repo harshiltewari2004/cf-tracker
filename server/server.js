@@ -4,7 +4,9 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
 import authRouter from './routes/auth.js';
+import userRouter from './routes/user.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { authLimiter,apiLimiter } from './middleware/rateLimiter.js';
 
 import { connectDB } from './config/db.js';
 
@@ -14,6 +16,8 @@ app.use(cors({
   origin: env.FRONTEND_ORIGIN,
   credentials: true,
 }));
+app.use('/api',apiLimiter);
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -21,7 +25,11 @@ app.get('/api/health', (req, res) => {
   res.json({ success: true, data: { status: 'ok', env: env.NODE_ENV } });
 });
 
+app.use('/api',authLimiter,authRouter);
+
 app.use('/api/auth',authRouter);
+
+app.use('/api/user',userRouter);
 
 app.use(errorHandler);
 

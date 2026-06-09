@@ -17,3 +17,19 @@
 ## 2026-05-13 — Render cold start
 - Free tier sleeps after 15 min inactivity. First request after sleep: ~30s cold boot.
 - Acceptable for MVP. Revisit if it impacts demo.
+
+## 2026-06-09 — Handle change wipe policy 
+-Handle change wipes user-scoped derived collections before re-ingest; rationale: orphan contamination; catalog collections (Contest/Problem) untouched; non-atomic, empty window acceptable for MVP.
+
+## 2026-06-10 — Rate limiter trust proxy (deferred to deploy)
+- express-rate-limit keys clients by IP. On Render (behind a proxy), the real
+  client IP is in X-Forwarded-For; without `app.set('trust proxy', ...)` all
+  users share the proxy's IP and one bucket, tripping limits collectively.
+- Action at Phase 7 deploy: set trust proxy deliberately (not blindly — over-
+  trusting enables IP spoofing). Local dev unaffected; deferred until deploy.
+
+  ## 2026-06-10 — Rate limiter uses in-memory store for MVP
+- Default express-rate-limit store is per-process memory: counter resets on
+  every server restart, and does not coordinate across instances.
+- Fine for single-instance MVP on Render. If/when scaling to multiple
+  instances, move to a shared Redis store (Upstash already in stack).
