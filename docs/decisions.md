@@ -33,3 +33,24 @@
   every server restart, and does not coordinate across instances.
 - Fine for single-instance MVP on Render. If/when scaling to multiple
   instances, move to a shared Redis store (Upstash already in stack).
+
+  ## SubmissionParser: filtered verdicts extended beyond spec
+
+`03_data_models.md` §5 specifies CE and SKIPPED are filtered at ingest. Parser
+also filters TESTING — an in-flight verdict CF returns while judging is
+incomplete. A TESTING submission has no final outcome to record; the next daily
+refresh re-fetches it with its settled verdict. Filtering it avoids writing a
+Submission row that would need correction later.
+
+Filtered set: COMPILATION_ERROR, SKIPPED, TESTING → parser returns null.
+
+## SubmissionParser: unknown participantTypes skipped
+
+Submission model enum (03_data_models.md §5) allows CONTESTANT / VIRTUAL /
+PRACTICE. CF also returns MANAGER, OUT_OF_COMPETITION, GYM. Parser skips
+(returns null) any participantType outside the known three rather than coercing
+(e.g. mapping OUT_OF_COMPETITION → PRACTICE).
+
+Rationale: coercion invents participation semantics the spec never decided, and
+these types are rare for the target user population. Skipping loses negligible
+data. Revisit if real-user volume shows meaningful counts in these types.
