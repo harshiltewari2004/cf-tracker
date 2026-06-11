@@ -8,7 +8,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
 
   MONGODB_URI: z.string().url().startsWith('mongodb'),
-  REDIS_URL: z.string().url().startsWith('redis').optional(),
+  REDIS_URL: z.string().url().startsWith('redis'),
 
   JWT_SECRET: z
     .string()
