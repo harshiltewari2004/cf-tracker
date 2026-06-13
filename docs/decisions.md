@@ -54,3 +54,93 @@ PRACTICE. CF also returns MANAGER, OUT_OF_COMPETITION, GYM. Parser skips
 Rationale: coercion invents participation semantics the spec never decided, and
 these types are rare for the target user population. Skipping loses negligible
 data. Revisit if real-user volume shows meaningful counts in these types.
+
+## 2026-06-13 — Phase 2 IngestService
+
+### Shared page-loop factoring (initial vs daily refresh)
+Both flows share one private core `ingestSubmissionPages`; the only loop-level
+difference is the floor. Expressed as DATA not behavior: `floorSubmissionId`
+nullable param. `null` (initial) makes stop-condition-1 unreachable → runs to
+end of history. A value (refresh) stops once `cfSubmissionId <= floor`.
+Rejected: branching on `job.type` inside the loop (couples core to job types),
+and a `shouldStop` callback (over-engineered for two cases — boring code wins,
+08 §15).
+
+### Cursor is a read watermark, not a write watermark  ← interview-critical
+`CFProfile.lastIngestedSubmissionId` (committed cursor) tracks the newest ID
+SEEN FROM THE CF API, not the newest ID STORED in Mongo. These diverge when the
+newest submission is filtered out (filtered verdict, or problem not in catalog).
+Observed: committed cursor 378440634 > newest stored 378383336 — the gap is one
+skipped `2197 C` submission.
+Chosen deliberately: the cursor means "I have examined everything up to here,"
+so the daily-refresh floor correctly skips submissions we intentionally never
+store, instead of re-fetching+re-filtering them every day forever.
+Consequence: the smoke-test assertion was wrong, not the code — changed
+`cursor === newest stored` to `cursor >= newest stored`.
+
+### Two-cursor update points (resume vs commit)
+`IngestJob.lastIngestedSubmissionId` = per-page resume cursor (smallest ID in
+the last fetched page), advanced every page. `CFProfile.lastIngestedSubmissionId`
+= committed cursor (newest seen), promoted ONLY at successful pipeline
+completion, never mid-job. Promoting mid-job with newest-first ordering would
+poison resume. Because a resumed job refetches from page 1 and skips writes, the
+newest ID is always re-observed on the attempt that finally succeeds — so
+`newestSeenSubmissionId` can live in loop memory; no extra schema field needed.
+
+### Cursor promotion sits AFTER the full pipeline, not after the loop
+Per 03 §14 a finished page-loop ≠ a finished pipeline. Orchestrator promotes the
+committed cursor + flips `ingestStatus` only after post-loop steps (GapEngine
+recalc, ValidationBaseline for initial; recalc/reliability/upsolve for refresh).
+If a post-loop step throws, BullMQ retries the whole job without a prematurely
+advanced cursor.
+
+### deriveContestResults runs POST-loop, and upserts (not inserts)
+Contest result derivation moved out of the page loop because a single contest's
+submissions can straddle a page boundary — deriving per-page risks computing
+failCount/firstACTime from half a contest. ContestResult + ContestProblemResult
+are upserted (not inserted) so a BullMQ retry re-deriving the same contest is
+idempotent, via the `(user, cfContestId, problemIndex)` unique index. Mirrors the
+`(user, cfSubmissionId)` submission dedup.
+
+### daily refresh does NOT touch CFProfile.ingestStatus
+`ingestStatus` is the user-facing onboarding sync state (03 §2). A routine daily
+refresh leaving it alone prevents resurrecting the onboarding ingest banner on
+every cron run.
+
+### OPEN — zero/low-data promotion guard  ← still owed, decide before ingestWorker
+A run currently promotes the cursor + marks complete regardless of how many
+submissions were skipped. Empty-catalog case is now moot (catalog seeded), but
+catalog STALENESS (new contest's problems not yet seeded) can still cause
+silent skips that the cursor sails past — permanent data loss, since the floor
+never re-fetches. Asymmetry: promoting a bad run = silent loss; refusing a fine
+run = pointless dead-letter. Threshold must be a RATIO with a denominator floor,
+not a raw count. DECISION PENDING: skip-ratio guard vs. log-loudly-and-promote
+for MVP. Affects ingestWorker's failed-attempt handling.
+
+## 2026-06-13 — Catalog seed + bucket utils
+
+### bucketUtils: half-open buckets, closed stretch zone
+Buckets are `[low, high)` — rating 1000 → "1000-1200", never "800-1000" — so
+every rating maps to exactly one bucket (no double-counting in TopicBucketScore).
+Stretch zone is closed `[userRating, userRating+200]` per 01, so a problem at
+exactly userRating+200 is in-zone. Two different range semantics, each from its
+own doc, deliberately not unified. Bucket labels are frozen once written (part of
+the `(user, topic, bucket)` unique index) — changing the format later = migration.
+
+### CONFLICT FLAGGED: 05 §3.3 vs 03 grid
+05's GapExplainer example shows `greedy@1100-1300`, which is not a valid bucket on
+03's even-hundred grid (likely confused a stretch zone with a bucket). Resolved in
+favor of 03 (schema authority). 05 example treated as illustrative, not normative.
+
+### seed-catalog: divisions, unrated problems, batched backfill
+- Div4/ICPC/special rounds skipped from Contest catalog (03 §3 division enum has
+  no Div4). Their submissions still store (problems exist in problemset.problems),
+  but deriveContestResults warn-skips them. Acceptable: success metric is Div2-only.
+- Problems with no CF rating stored as `rating:null, ratingBucket:null` — can
+  never surface in a daily plan (stretch-zone filter), but submissions resolve.
+- Step-3 backfill batched into chunked bulkWrite after a sequential per-contest
+  version (3300 serial round trips to M0) wedged on a stalled connection. Added
+  `serverSelectionTimeoutMS`/`socketTimeoutMS` to the connect call so no single op
+  hangs forever. NOTE: this same sequential-round-trip risk is acceptable in the
+  production ingest worker because BullMQ wraps it with retry/backoff (04 §5,§11);
+  the one-off script had no such harness.
