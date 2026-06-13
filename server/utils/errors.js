@@ -7,3 +7,11 @@ export class AppError extends Error {
     Error.captureStackTrace(this, this.constructor);
   }
 }
+
+export class DegradedIngestError extends AppError{
+  constructor(message,details){
+    super(message,422);
+    this.name = 'DegradedIngestError';
+    this.details = details;
+  }
+}

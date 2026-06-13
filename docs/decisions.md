@@ -144,3 +144,55 @@ favor of 03 (schema authority). 05 example treated as illustrative, not normativ
   hangs forever. NOTE: this same sequential-round-trip risk is acceptable in the
   production ingest worker because BullMQ wraps it with retry/backoff (04 §5,§11);
   the one-off script had no such harness.
+
+  ## Catalog-miss skip guard on ingest (Door A)
+
+**Date:** 2026-06-14
+**Status:** Accepted
+**Area:** Ingest pipeline — `ingest/IngestService.js`, `config/constants.js`, `utils/errors.js`
+
+### Context
+The read watermark (`CFProfile.lastIngestedSubmissionId`) is promoted only at full-pipeline
+success and is never re-fetched below once promoted (`04_architecture.md` §8.2). A submission
+can be skipped during ingest for two distinct reasons:
+- **Filtered verdict** (CE / SKIPPED) — dropped by design (`03_data_models.md`, Submission);
+  no data loss.
+- **Catalog miss** — a real, countable submission whose problem is absent from the `Problem`
+  catalog (catalog is seeded on a separate system-level track). Promoting the watermark past a
+  catalog-missed submission is permanent loss, because the floor never re-fetches below itself.
+
+### Decision
+Add a skip-ratio guard in `IngestService` that gates watermark promotion. Only catalog misses
+count toward it; filtered-verdict skips are excluded from both numerator and denominator.
+- **Denominator** = submissions surviving the verdict filter (`fresh`). **Numerator** =
+  catalog-missed submissions.
+- **Floor:** `INGEST_SKIP_GUARD_MIN_SUBMISSIONS = 20` — below this the ratio is not trusted,
+  mirroring the cohort `N ≥ 20` floor in `01_problem_statement.md` / `03_data_models.md`.
+- **Threshold:** `INGEST_SKIP_GUARD_MAX_MISS_RATIO = 0.5`.
+- **Below floor or below threshold:** promote the watermark, log the missed `contestId:cfIndex`
+  tuples loudly (actionable for manual reseed).
+- **At/above floor AND above threshold:** refuse to promote; throw `DegradedIngestError`
+  carrying surviving / misses / ratio / missedProblems.
+
+The guard lives in `IngestService` because promotion happens there before the function returns —
+a post-hoc check in the worker cannot protect a cursor that has already advanced.
+
+`DegradedIngestError` is a domain error with no BullMQ knowledge. The worker translates it into a
+BullMQ `UnrecoverableError` → immediate dead-letter + alert (`04_architecture.md` §11) rather than
+retrying: catalog staleness is not transient within the retry window (5s → ~30 min, §5), so
+retries cannot re-seed the catalog and would only waste rate-limited CF calls.
+
+Already-written submissions are not rolled back on a degraded throw. The `(user, cfSubmissionId)`
+unique index makes re-ingest idempotent, so a re-run after catalog reseed self-heals.
+
+### Deferred to v2
+Auto-redrive — capturing missed submission tuples + payload to a durable store and reprocessing
+them after catalog reseed — would eliminate the residual below-floor trickle entirely. Deferred
+because it requires adding to the locked 16-collection data model (`03_data_models.md`) and needs
+an explicit doc unlock before implementation.
+
+### Consequences
+- A low-rate trickle of catalog-miss loss below the floor is accepted for MVP. It is visible (loud
+  logs + missed tuples) and fixable (manual reseed + re-trigger), not silent.
+- Degraded runs fail fast via dead-letter alert rather than silently corrupting downstream
+  gap/reliability data.

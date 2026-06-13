@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { differenceInMinutes } from 'date-fns';
 
 import logger from '../config/logger.js';
-import {INGEST_PAGE_SIZE,MONGO_DUPLICATE_KEY_CODE} from '../config/constants.js';
+import { INGEST_PAGE_SIZE, MONGO_DUPLICATE_KEY_CODE, INGEST_SKIP_GUARD_MIN_SUBMISSIONS, INGEST_SKIP_GUARD_MAX_MISS_RATIO } from '../config/constants.js';
 import CFProfile from '../models/CFProfile.js';
 import IngestJob from '../models/IngestJob.js';
 import Problem from '../models/Problem.js';
@@ -10,8 +10,7 @@ import Submission from '../models/Submission.js';
 import Contest from '../models/Contest.js';
 import ContestResult from '../models/ContestResult.js';
 import ContestProblemResult from '../models/ContestProblemResult.js';
-import { AppError } from '../utils/errors.js';
-
+import { AppError, DegradedIngestError } from '../utils/errors.js';
 import * as cfApiClient from './CFApiClient.js';
 import { parseSubmission } from './SubmissionParser.js';
 
@@ -37,6 +36,9 @@ const ingestSubmissionPages = async({userId,handle,job,floorSubmissionId})=>{
     let from = 1;
     let newestSeenSubmissionId = null;
     let totalInserted = 0;
+    let survivingTotal = 0;
+    let catalogMissesTotal=0;
+    const missedProblemKeys = new Set();
     const contestantContestIds = new Set();
 
     const resumeCursor = job.lastIngestedSubmissionId??null;
@@ -64,11 +66,14 @@ const ingestSubmissionPages = async({userId,handle,job,floorSubmissionId})=>{
             fresh.push(parsed);
         }
         const refMap = await resolveProblemRefs(fresh);
+        survivingTotal+=fresh.length;
         const docs=[];
 
         for(const p of fresh){
             const problemId = refMap.get(`${p.problemContestId}:${p.cfIndex}`);
             if(!problemId){
+                catalogMissesTotal+=1;
+                missedProblemKeys.add(`${p.problemContestId}:${p.cfIndex}`);
                 logger.warn(
                     {userId,problemContestId:p.problemContestId,cfIndex:p.cfIndex},
                     'problem not in catalog,skipping submission'
@@ -118,8 +123,25 @@ const ingestSubmissionPages = async({userId,handle,job,floorSubmissionId})=>{
         if(page.length<INGEST_PAGE_SIZE)break;
         from+=INGEST_PAGE_SIZE;
     }
-    return {newestSeenSubmissionId,submissionsIngested:totalInserted,contestantContestIds};
+    return {newestSeenSubmissionId,submissionsIngested:totalInserted,contestantContestIds,surviving:survivingTotal,catalogMisses:catalogMissesTotal,missedProblems:[...missedProblemKeys]};
 };
+const evaluateSkipGuard=({userId,surviving,catalogMisses,missedProblems})=>{
+    if(catalogMisses===0)return;
+
+    const ratio = catalogMisses/surviving;
+
+    if(surviving>=INGEST_SKIP_GUARD_MIN_SUBMISSIONS&&ratio>INGEST_SKIP_GUARD_MAX_MISS_RATIO){
+        throw new DegradedIngestError(
+            'ingest skipped too many submissions on catalog miss;refusing to promote cursor',
+            {surviving,catalogMisses,ratio,missedProblems}
+        );
+    }
+    logger.warn(
+        { userId,surviving,catalogMisses,ratio,missedProblems},
+        'catalog misses below skip guard threshold;promoting cursor'
+    );
+};
+
 
 const deriveContestResults = async({userId,handle,contestIds})=>{
 
@@ -234,6 +256,14 @@ export const runInitialIngest = async({userId,ingestJobId})=>{
         floorSubmissionId:null,
     });
 
+    evaluateSkipGuard({
+  userId,
+  surviving: summary.surviving,
+  catalogMisses: summary.catalogMisses,
+  missedProblems: summary.missedProblems,
+});
+
+
     await deriveContestResults({
         userId,
         handle:profile.handle,
@@ -274,6 +304,13 @@ export const runDailyRefresh = async({userId,ingestJobId})=>{
     await job.save();
 
     const summary = await ingestSubmissionPages({userId,handle:profile.handle,job,floorSubmissionId});
+
+    evaluateSkipGuard({
+  userId,
+  surviving: summary.surviving,
+  catalogMisses: summary.catalogMisses,
+  missedProblems: summary.missedProblems,
+});
 
     await deriveContestResults({
         userId,
