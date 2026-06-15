@@ -3,11 +3,13 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
+
 import authRouter from './routes/auth.js';
 import userRouter from './routes/user.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { authLimiter,apiLimiter } from './middleware/rateLimiter.js';
 
+import './workers/ingestWorker.js';
 import { connectDB } from './config/db.js';
 
 const app = express();

@@ -12,6 +12,11 @@ export const BUCKET_WIDTH = 200;
 export const STRETCH_ZONE_SPAN = 200; 
 export const INGEST_SKIP_GUARD_MIN_SUBMISSIONS=20;
 export const INGEST_SKIP_GUARD_MAX_MISS_RATIO=0.5;
+export const INGEST_QUEUE_NAME = 'ingest';
+export const INGEST_JOB_INITIAL = 'initial';
+export const INGEST_JOB_DAILY_REFRESH = 'daily_refresh';
+export const INGEST_JOB_ATTEMPTS = 5; // matches the queue's attempts (04_architecture.md §5)
+export const INGEST_WORKER_CONCURRENCY = 5;
 
 export const BUCKET_RANGES = [];
 for (let low = MIN_PROBLEM_RATING; low < MAX_PROBLEM_RATING; low += BUCKET_WIDTH) {
