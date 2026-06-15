@@ -48,6 +48,7 @@ export const updateHandle = async (userId, newHandle) => {
   await profile.save();
   
   await User.findByIdAndUpdate(userId,{coldStartComplete:false});
+  await enqueueInitialIngest({userId});
   return profile;
 };
 

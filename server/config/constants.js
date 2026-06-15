@@ -17,6 +17,9 @@ export const INGEST_JOB_INITIAL = 'initial';
 export const INGEST_JOB_DAILY_REFRESH = 'daily_refresh';
 export const INGEST_JOB_ATTEMPTS = 5; // matches the queue's attempts (04_architecture.md §5)
 export const INGEST_WORKER_CONCURRENCY = 5;
+export const INGEST_BACKOFF_DELAY_MS = 5000;
+export const INGEST_KEEP_COMPLETED=100;
+export const INGEST_KEEP_FAILED=500;
 
 export const BUCKET_RANGES = [];
 for (let low = MIN_PROBLEM_RATING; low < MAX_PROBLEM_RATING; low += BUCKET_WIDTH) {
