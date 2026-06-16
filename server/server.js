@@ -8,6 +8,7 @@ import authRouter from './routes/auth.js';
 import userRouter from './routes/user.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { authLimiter,apiLimiter } from './middleware/rateLimiter.js';
+import onboardingRouter from './routes/onboarding.js';
 
 import './workers/ingestWorker.js';
 import { connectDB } from './config/db.js';
@@ -32,6 +33,8 @@ app.use('/api',authLimiter,authRouter);
 app.use('/api/auth',authRouter);
 
 app.use('/api/user',userRouter);
+
+app.use('/api/onboarding',onboardingRouter);
 
 app.use(errorHandler);
 

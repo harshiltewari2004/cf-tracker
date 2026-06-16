@@ -25,3 +25,11 @@ export const BUCKET_RANGES = [];
 for (let low = MIN_PROBLEM_RATING; low < MAX_PROBLEM_RATING; low += BUCKET_WIDTH) {
   BUCKET_RANGES.push({ low, high: low + BUCKET_WIDTH, label: `${low}-${low + BUCKET_WIDTH}` });
 }
+
+
+
+export const CF_HANDLE = {
+  MIN_LENGTH: 3,                    
+  MAX_LENGTH: 24,
+  REGEX: /^[a-zA-Z0-9_]+$/,         
+};
