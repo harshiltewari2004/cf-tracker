@@ -7,11 +7,12 @@ import cookieParser from 'cookie-parser';
 import authRouter from './routes/auth.js';
 import userRouter from './routes/user.js';
 import { errorHandler } from './middleware/errorHandler.js';
-import { authLimiter,apiLimiter } from './middleware/rateLimiter.js';
+import { authLimiter,apiLimiter,pollLimiter } from './middleware/rateLimiter.js';
 import onboardingRouter from './routes/onboarding.js';
 
 import './workers/ingestWorker.js';
 import { connectDB } from './config/db.js';
+import ingestRouter from './routes/ingest.js';
 
 const app = express();
 
@@ -19,7 +20,7 @@ app.use(cors({
   origin: env.FRONTEND_ORIGIN,
   credentials: true,
 }));
-app.use('/api',apiLimiter);
+
 
 app.use(express.json());
 app.use(cookieParser());
@@ -30,11 +31,11 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api',authLimiter,authRouter);
 
-app.use('/api/auth',authRouter);
+app.use('/api/auth',authRouter,userRouter);
 
-app.use('/api/user',userRouter);
+app.use('/api/onboarding',apiLimiter,onboardingRouter);
 
-app.use('/api/onboarding',onboardingRouter);
+app.use('/api/ingest',pollLimiter,ingestRouter);
 
 app.use(errorHandler);
 

@@ -33,3 +33,9 @@ export const CF_HANDLE = {
   MAX_LENGTH: 24,
   REGEX: /^[a-zA-Z0-9_]+$/,         
 };
+
+export const POLL_RATE_LIMIT={
+  WINDOW_MS:15*60*1000,
+  MAX:200
+};
+
