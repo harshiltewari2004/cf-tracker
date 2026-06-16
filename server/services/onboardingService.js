@@ -1,9 +1,9 @@
 import { AppError } from "../utils/errors.js";
-import { logger } from "../config/logger.js";
+import  logger  from "../config/logger.js";
 import User from "../models/User.js";
 import CFProfile from "../models/CFProfile.js";
 import IngestJob from "../models/IngestJob.js";
-import cfApiClient from "../ingest/CFApiClient.js";
+import * as cfApiClient from "../ingest/CFApiClient.js";
 import { enqueueInitialIngest } from "../queues/ingestQueue.js";
 
 export const submitHandle = async (userId, handle) => {
