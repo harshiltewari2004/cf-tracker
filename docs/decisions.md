@@ -196,3 +196,25 @@ an explicit doc unlock before implementation.
   logs + missed tuples) and fixable (manual reseed + re-trigger), not silent.
 - Degraded runs fail fast via dead-letter alert rather than silently corrupting downstream
   gap/reliability data.
+  
+### 17-06-26
+  1. Contest catalog stores Div2 only; combined rounds count as Div2.
+
+The catalog persists only Div2 rounds. Combined "Div. 1 + Div. 2" rounds are stored as Div2; Div1/Div3/Educational are classified (to avoid mislabeling) but not stored; Div4/Global are skipped entirely.
+
+Why: All three flows the catalog feeds (virtual selection, contestOpportunities, "what counts as a contest," 03 §3) are Div2-centric. A combined round is a real Div2 contest for a Div2 user — same Div2-rated A/B. Div4/Global have no slot in the locked division enum (03 §3) and target populations outside the 800–1300 user. Storing Div1/Div3/Educational is master-catalog completeness, not MVP-required; extending is a one-line change to the write filter.
+2. Division is classified from the contest name, conservatively.
+
+Division is parsed from the name via ordered, most-specific-first, first-match-wins rules (Educational → Combined → Global → Div3/4 → Div2 → Div1 → Unknown). Anything unmatched is skipped and logged.
+
+Why: CF's markers are substrings of each other ("Rated for Div. 2" and "Div. 1 + Div. 2" both contain "Div. 2"), so check order is load-bearing — a naive substring match mislabels Educational and combined rounds as Div2. Since division is the source of truth for downstream isDiv2 denormalizations (03 §3, §9), a conservative classifier that skips-and-logs the ambiguous is correct: missing a few rounds beats corrupting the field.
+3. No date cutoff at seed; full history stored, recency deferred to query.
+
+The seed stores all FINISHED Div2 contests regardless of age — no "past 2 years" filter at seed time.
+
+Why: A cutoff is more code and introduces a contestOpportunities undercount for users with older participation. Storage is trivial on M0. 07's "past 2 years" is a floor, not a ceiling. The recency need (don't surface ancient contests as virtuals) belongs at query time in VirtualContestEngine, via the existing (division, startTime) index — not duplicated in the seed.
+4. Known limitation: rated rounds with no division marker are skipped.
+
+Rounds whose names carry no "Div." marker — Hello/Good Bye New-Year rounds, pre-split numbered rounds, some sponsor rounds — are not captured.
+
+Why: No name signal classifies them without a fragile "any Codeforces Round = Div2" heuristic that would sweep in April Fools, team/ICPC contests, and special events, corrupting the source-of-truth field. Cost of missing is minimal: Hello/Good Bye are ~2/year, the rest are old-meta and irrelevant to recent 800–1300 users, and the success metric is built from per-user ingest, not this catalog.
