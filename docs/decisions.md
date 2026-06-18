@@ -218,3 +218,9 @@ Why: A cutoff is more code and introduces a contestOpportunities undercount for 
 Rounds whose names carry no "Div." marker — Hello/Good Bye New-Year rounds, pre-split numbered rounds, some sponsor rounds — are not captured.
 
 Why: No name signal classifies them without a fragile "any Codeforces Round = Div2" heuristic that would sweep in April Fools, team/ICPC contests, and special events, corrupting the source-of-truth field. Cost of missing is minimal: Hello/Good Bye are ~2/year, the rest are old-meta and irrelevant to recent 800–1300 users, and the success metric is built from per-user ingest, not this catalog.
+
+5. Div2 contests with no resolvable problems are skipped, not stored.
+
+The seed only persists a Div2 contest if its problems resolve from the Problem catalog; contests with an empty problems[] are skipped. This excludes 21 old Technocup-derived Div2 rounds (2017–2018 "based on Technocup … Elimination Round") whose problems aren't in the catalog.
+
+Why: The catalog invariant is "every stored Div2 contest carries its problems." A stored contest with no problems is inert — it contributes nothing to virtual selection or contestOpportunities — and is a footgun for VirtualContestEngine, which iterates Div2 contests expecting A/B problems. The 21 excluded rounds are old-meta (low-value by the recency reasoning in #3) and their problems simply aren't in the Problem catalog. Tracked as a known limitation: the seed is idempotent, so if the Problem catalog is later backfilled comprehensively, a re-run picks these up automatically.
