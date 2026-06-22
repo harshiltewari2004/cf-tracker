@@ -6,6 +6,16 @@ export const ratingToBucket = (rating) => {
   return bucket ? bucket.label : null; 
 };
 
+export const getTopicBucketRows =(problem)=>{
+  if(problem?.rating==null) return [];
+
+  const bucket = ratingToBucket(problem.rating);
+  if(!bucket)return[];
+
+  const tags = problem.tags??[];
+  return tags.map((topic)=>({topic,bucket}));
+};
+
 export const getBuckets = () => BUCKET_RANGES.map((b) => b.label);
 
 export const isInStretchZone = (rating, userRating) =>

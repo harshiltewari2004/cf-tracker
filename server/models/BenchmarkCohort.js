@@ -1,4 +1,4 @@
-import mongoose, { version } from "mongoose";
+import mongoose from "mongoose";
 
 const benchmarkCohortSchema = new mongoose.Schema(
     {
@@ -23,7 +23,7 @@ const benchmarkCohortSchema = new mongoose.Schema(
             type:Number,
             required:true,
         },
-        fallBackUsed:{
+        fallbackUsed:{
             type:String,
             enum:['1300-1700_IN','1300-1500_global','1300-1700_global'],
             default:null,

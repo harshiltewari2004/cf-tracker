@@ -69,6 +69,10 @@ export const getUserRating = async(handle)=>{
     return cfGet('/user.rating',{handle});
 };
 
+export const getRatedList = async()=>{
+    return cfGet('/user.ratedList',{activeOnly:false});
+};
+
 export const getContestStandings = async(contestId)=>{
     return cfGet('/contest.standings',{contestId});
 };

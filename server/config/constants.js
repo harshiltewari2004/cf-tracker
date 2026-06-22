@@ -39,3 +39,16 @@ export const POLL_RATE_LIMIT={
   MAX:200
 };
 
+export const COHORT = {
+  MIN_CONTESTS: 30,
+  MIN_SOLVES: 500,
+  RECENCY_DAYS: 180,
+  TARGET_N: 20,
+  FLOOR_N: 15,
+  FALLBACK_TIERS: [
+    { country: 'India', minRating: 1300, maxRating: 1500, fallbackUsed: null },
+    { country: 'India', minRating: 1300, maxRating: 1700, fallbackUsed: '1300-1700_IN' },
+    { country: null, minRating: 1300, maxRating: 1500, fallbackUsed: '1300-1500_global' },
+    { country: null, minRating: 1300, maxRating: 1700, fallbackUsed: '1300-1700_global' },
+  ],
+};
