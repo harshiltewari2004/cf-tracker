@@ -15,7 +15,7 @@ const contestProblemResultSchema = new mongoose.Schema(
         firstACTime:{type:Number},
         failCount:{type:Number,default:0},
         isDiv2A:{type:Boolean,default:false},
-        isDive2B:{type:Boolean,default:false},
+        isDiv2B:{type:Boolean,default:false},
     },
     {
         timestamps:true,
