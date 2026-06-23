@@ -224,3 +224,128 @@ Why: No name signal classifies them without a fragile "any Codeforces Round = Di
 The seed only persists a Div2 contest if its problems resolve from the Problem catalog; contests with an empty problems[] are skipped. This excludes 21 old Technocup-derived Div2 rounds (2017–2018 "based on Technocup … Elimination Round") whose problems aren't in the catalog.
 
 Why: The catalog invariant is "every stored Div2 contest carries its problems." A stored contest with no problems is inert — it contributes nothing to virtual selection or contestOpportunities — and is a footgun for VirtualContestEngine, which iterates Div2 contests expecting A/B problems. The 21 excluded rounds are old-meta (low-value by the recency reasoning in #3) and their problems simply aren't in the Problem catalog. Tracked as a known limitation: the seed is idempotent, so if the Problem catalog is later backfilled comprehensively, a re-run picks these up automatically.
+
+
+## 2026-06-22 — Phase 3, piece 1: BenchmarkEngine
+
+### Resolved conflicts
+- **BenchmarkTargetCount unique index → (topic, bucket, cohortVersion).** 03 §13 declared
+  it unique on (topic, bucket), but 04 §11's shadow-swap needs two versions to coexist
+  during a refresh. Adding cohortVersion was the smaller change (field already existed, no
+  transaction needed) and is what makes rows-first/pointer-last writes safe. Old-version
+  pruning deferred to v2.
+
+### CF API contract (live behavior vs assumptions)
+- **Country filter value is "India", not "IN".** The live API returns the full country
+  name. FALLBACK_TIERS and BenchmarkCohort.filters.country store "India"; 03 §12's "IN"
+  example was wrong against the API.
+- **getRatedList forced to activeOnly: false.** activeOnly:true uses CF's ~30-day active
+  window — narrower than our locked 180-day recency filter — and would silently drop valid
+  users. Recency is enforced ourselves from user.rating.
+
+### Engine design
+- **getTopicBucketRows lives in utils/bucketUtils.js, not the engine.** Pure transform
+  (incl. the all-tags rule) → utils, per the isInStretchZone precedent. It's the shared atom
+  BenchmarkEngine (cohort side) and GapEngine (user side) MUST apply identically, or the gap
+  comparison is biased.
+- **Cohort scan is full, no early-stop.** ratedList is rating-sorted; stopping at N≥20 would
+  bias the cohort toward the top of the band and skew medians.
+- **Skip-and-continue fault tolerance.** Per-candidate try/catch logs a warn and continues on
+  any CF failure (stale handle, timeout). A multi-hour scan can't die on one bad handle. No
+  per-candidate retry/pagination — MVP-minimal.
+- **computeTargetCounts includes zeros.** p50 is taken over all N users; a non-solver
+  contributes 0. It's the median of cohort *solves* — excluding non-solvers would inflate
+  target_count and make everyone look artificially weak. Rare buckets → p50 0 →
+  divide-by-zero handled on the GapEngine side, not here.
+- **refresh write ordering: rows first, cohort pointer last (shadow-swap, 04 §11).**
+  deleteMany(version) → insertMany rows → BenchmarkCohort.create last. A crash before the
+  pointer leaves no half-published version; restart-from-scratch is safe.
+- **selectCohort exit states.** First tier with N≥20 wins; else broadest tier with N≥15
+  accepted; else null = hold previous version. Sub-20 only at the broadest rung. Fallback
+  expands the rating band upward only, never below the floor.
+
+### Schema corrections
+- **BenchmarkCohort.fallbackUsed (not fallBackUsed).** Renamed to match 03 §12 and the engine
+  write; the capital-B version was silently dropped under strict mode, leaving the fallback
+  audit trail permanently null.
+- **BenchmarkTargetCount.bucket is String.** Buckets are range strings ("800-1000"), per 03 §13.
+
+### Dev tooling
+- **Cohort cached to disk in run-benchmark.js.** An onSelection hook dumps the scanned
+  { cohort, tier } to scripts/.cohort-cache.json (gitignored) after the scan, before the
+  write — so a write-path bug doesn't cost a full ~3.5h rescan. refresh also accepts
+  injectedSelection to replay the cache (doubles as a write-path test seam). Production
+  refresh() with no args is untouched. This is the visible cost of choosing
+  restart-from-scratch over checkpointing; resumable mid-scan checkpointing is a v2 QoL item.
+
+### Validation outcome
+- **Version 1 written and validated.** Primary tier IN/1300–1500, N≈773 (live drift
+  run-to-run), fallbackUsed null. Top medians are math / greedy / implementation /
+  constructive algorithms / brute force at the 800–1400 buckets — bread-and-butter Div2 A/B,
+  real CF tags only, nothing niche or high-bucket. Non-monotonic counts across buckets reflect
+  CF problem supply × cohort practice, not a bug. Full scan ~3.5h.
+
+### Still PENDING
+- Redis cache invalidation in refresh — TODO; key gets defined when GapEngine's read path lands.
+- Old benchmark-version pruning — deferred to v2.
+- Resumable mid-scan checkpointing — v2 QoL.
+- Prettier config still on defaults vs 08 §11 (singleQuote, trailingComma es5, printWidth 100).
+- Upstash Redis region (Mumbai vs Oregon colocation) — undecided.
+
+## GapEngine (Phase 3, Piece 2)
+
+### Solves dedup keyed on problem identity
+aggregateSolves dedups AC submissions by `problem._id` before counting, so
+`solves` is a distinct-problem count, not a submission count — matching
+BenchmarkEngine.dedupSolved on the cohort side (which keys on `contestId-index`).
+The dedup *field* differs by data shape (Mongo doc `_id` vs CF API
+`contestId`/`index`); the *counting unit* (distinct problems) is identical, which
+is what keeps base_gap unbiased per 01_problem_statement.md multi-tag rule.
+Two dedup implementations kept intentionally rather than extracting a shared
+`dedupBy` helper — defer extraction until a third call site appears (rule of
+three). Per 08 "boring code wins" + "ask before diverging."
+
+### contestFails / contestOpportunities not deduped
+aggregateContestSignal does NOT dedup, deliberately. ContestProblemResult has a
+unique index on (user, cfContestId, problemIndex) per 03_data_models.md §10, so
+one row per problem is DB-enforced — no duplicates can exist. Dedup would be
+redundant. Contrast with Submission, which has no such uniqueness (hence solves
+needs dedup).
+
+### CONTESTANT-only enforced by construction, not by filter
+contestFails/contestOpportunities read ContestProblemResult with no
+participantType filter. Per 03 write pipeline, only the CONTESTANT path creates
+ContestProblemResult rows (VIRTUAL → VirtualContest.results, PRACTICE → none), so
+the collection is CONTESTANT-only by construction. Hot invariant (CONTESTANT
+only) satisfied without a filter. TODO: when the contest write path is built,
+verify no code path writes a VIRTUAL row into ContestProblemResult.
+
+### Missing benchmark row → targetCount 0 → baseGap 0
+recalculate maps a missing BenchmarkTargetCount row to targetCount = 0 via
+`?? 0`, relying on computeGap's `targetCount <= 0` guard to return baseGap = 0.
+A (topic,bucket) the user solved but no cohort member did produces no practice
+gap — correct, since there's no benchmark to be "behind." Guard handles both
+solves=0 (0/0 NaN) and solves>0 (n/0 Infinity) cases.
+
+### Target counts read from max written cohortVersion
+aggregateTargetCounts reads BenchmarkTargetCount at max(cohortVersion) present in
+that collection, not via BenchmarkCohort's version pointer. Only computed versions
+have target-count rows, so a held refresh (N<15, per 01 fallback) writes no rows
+and cannot be picked — sidesteps the hold-marker ambiguity. Self-consistent by
+construction.
+
+### getTopicBucketRows uses `== null` (intentional)
+getTopicBucketRows guards `problem?.rating == null` with loose equality — the
+recognized JS idiom for catching null OR undefined in one check. Intentional, not
+an oversight. Kept over `=== null || === undefined` for readability per 08
+"boring code wins."
+
+### Deferred (not bugs — known tradeoffs)
+- recalculate uses per-row findOneAndUpdate (sequential). ~398 rows = ~3min wall
+  clock observed. Scale path: bulkWrite to batch into one round-trip. Deferred —
+  MVP correctness over throughput.
+- Stale rows: recalculate only upserts keys present in current run. If a benchmark
+  version drops a (topic,bucket), the old TopicBucketScore row lingers with stale
+  numbers. Acceptable for MVP (keys rarely disappear). Revisit if it surfaces.
+- smoke-ingest@local.test source handle not yet verified — confirm which CF handle
+  the 398 rows describe.
