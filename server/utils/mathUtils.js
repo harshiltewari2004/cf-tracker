@@ -6,3 +6,5 @@ export const median = (values) => {
     ? (sorted[mid - 1] + sorted[mid]) / 2
     : sorted[mid];
 };
+
+export const clamp = (value,lo,hi)=>Math.min(Math.max(value,lo),hi);

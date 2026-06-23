@@ -20,6 +20,7 @@ export const INGEST_WORKER_CONCURRENCY = 5;
 export const INGEST_BACKOFF_DELAY_MS = 5000;
 export const INGEST_KEEP_COMPLETED=100;
 export const INGEST_KEEP_FAILED=500;
+export const GAP_BETA = 0.4;
 
 export const BUCKET_RANGES = [];
 for (let low = MIN_PROBLEM_RATING; low < MAX_PROBLEM_RATING; low += BUCKET_WIDTH) {
