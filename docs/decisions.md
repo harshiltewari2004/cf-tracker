@@ -349,3 +349,94 @@ an oversight. Kept over `=== null || === undefined` for readability per 08
   numbers. Acceptable for MVP (keys rarely disappear). Revisit if it surfaces.
 - smoke-ingest@local.test source handle not yet verified — confirm which CF handle
   the 398 rows describe.
+
+  ## DailyPlanEngine — cold-start weakness signal (Phase 3, Piece 3)
+
+**Decision:** Cold-start tag ranking uses *catalog frequency* in the stretch
+zone divided by the user's trusted `solves`, NOT the cohort benchmark
+(`targetCount` / `finalGap`).
+
+**Why:** `02_features.md` §1 mandates the cold-start plan sample weakest tags
+"regardless of the gap formula." Catalog frequency (how often a tag appears on
+problems that *exist* at the user's level, from the Problem collection) is a
+distinct signal from `targetCount` (how many such problems the cohort *solved*).
+They diverge on real cases: `implementation` is catalog-common but low cohort
+p50 (strong solvers don't grind it); `dp` is catalog-rarer at low buckets but
+high cohort p50 (gateway everyone grinds). The divergence proves catalog
+frequency is not the benchmark in disguise, so using it is legal under §1.
+
+**Model:** Model B ("least developed in tags common at the user's level"), an
+exploration/breadth signal — not Model A (lowest demonstrated competence), which
+would never broaden the user. Catalog supplies "requiredness," user `solves`
+supply coverage, cohort is never touched.
+
+**Blend:** `weakness = catalogFrequency / (solves + COLD_START_TAG_SMOOTHING)`,
+smoothing = 1 (divide-by-zero guard; an untouched common tag ranks at full
+requiredness). Catalog drives iteration so untouched tags are included
+(default solves 0); user coverage is a lookup.
+
+**Collapse:** (topic, bucket) pooled to topic by summing BOTH sides over the
+same stretch-zone bucket set (rate-of-sums). Cold-start-local — the gap-driven
+path never collapses (it ranks per-row by `finalGap`, `01` §"Why bucketed").
+
+## DailyPlanEngine — stretch-zone binding for cold-start problems
+
+**Decision:** Cold-start *served* problems are bound to the stretch zone
+`[currentRating, currentRating + STRETCH_ZONE_SPAN]`, rating-exact, same as gap
+problems — even though `02_features.md` §1 only mandates the zone for gap
+problems explicitly.
+
+**Why:** The stretch zone's rationale (growth band; below = too easy, above =
+frustration) is about solving experience, which is path-independent. Binding
+reuses one filter instead of inventing a second range rule — it's the
+*smaller*-scope choice, not the larger. Tag starvation is handled by falling
+across tags, not by widening the zone.
+
+## DailyPlanEngine — gap fallback honors per-bucket gap (rejected one-query opt)
+
+**Decision:** Gap selection searches the row's *exact* bucket first, then the
+other in-zone bucket only on empty (strict `02` §1 three-level order). Rejected a
+simpler one-query version that `$in`'d both in-zone buckets sorted by rating.
+
+**Why:** `finalGap` is measured per (topic, bucket) — a hot invariant
+(`01` §"Why bucketed"). The one-query version could serve an adjacent-bucket
+problem on the strength of a gap measured in a different bucket — an attribution
+smear. Saving one query is not worth spending a hot invariant; query count isn't
+a bottleneck at MVP scale.
+
+## DailyPlanEngine — upsolve selection skips the seen-set
+
+**Decision:** Upsolve selection does NOT apply the gap-path seen-set dedup.
+
+**Why:** An upsolve problem is one the user *failed in a real contest*
+(`03_data_models.md` §8) — it is definitionally in their submission history.
+Filtering "seen" would empty the upsolve slot every time. Upsolve's own dedup is
+the queue's `(user, problem)` unique index. Bonus: because gap problems DO filter
+on the seen-set, gap/upsolve collision is prevented for free (the upsolve problem
+is seen, so gap selection already excludes it).
+
+## DailyPlanEngine — idempotent write via $setOnInsert (never overwrite)
+
+**Decision:** `generatePlan` writes with `findOneAndUpdate` + `$setOnInsert` on
+the `(user, date)` unique index. Re-runs return the existing plan untouched.
+Pure-atomic (no check-first `findOne` guard).
+
+**Why:** A re-run (BullMQ retry, `04` §5) must not overwrite — the plan
+accumulates in-day user state (solves, `verdict`/`solvedAt`, `replacedProblems`,
+rollover). `$set` would destroy it; `$setOnInsert` writes only on insert.
+Pure-atomic chosen over check-first because the skip path is rare (one
+generate per user per day); the `findOne` guard is the noted optimization if the
+skip path ever gets hot.
+
+## dateUtils.getDateOnly — UTC-explicit, returns a Date
+
+**Decision:** `getDateOnly` rebuilds the date at UTC midnight via
+`Date.UTC(getUTCFullYear, getUTCMonth, getUTCDate)` and returns a `Date`
+(not `date-fns` `startOfDay`, not a string).
+
+**Why:** `startOfDay` operates in *local* time — on a non-UTC host it yields a
+different UTC instant, misaligning with the UTC-anchored DailyPlan `date`
+(`03` §7) and the 02:00 UTC cron (`04` §8.3). A `Date` (not string) is required
+so Mongo `$lte` against `scheduledFor` (a Date) compares chronologically and the
+`(user, date)` unique index dedups correctly — a Date-vs-string `$lte` compares
+by BSON type order, silently returning wrong results.

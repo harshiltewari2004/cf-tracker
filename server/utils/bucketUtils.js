@@ -20,3 +20,6 @@ export const getBuckets = () => BUCKET_RANGES.map((b) => b.label);
 
 export const isInStretchZone = (rating, userRating) =>
   rating != null && rating >= userRating && rating <= userRating + STRETCH_ZONE_SPAN;
+
+export const getStretchZoneBuckets = (low, high) =>
+  BUCKET_RANGES.filter((b) => b.low <= high && b.high > low).map((b) => b.label);

@@ -22,6 +22,13 @@ export const INGEST_KEEP_COMPLETED=100;
 export const INGEST_KEEP_FAILED=500;
 export const GAP_BETA = 0.4;
 
+export const DAILY_PLAN_SIZE=3;
+export const COLD_START_TAG_SMOOTHING=1;
+export const PLAN_TYPE = {
+  COLD_START: 'cold_start',
+  GAP_DRIVEN: 'gap_driven',
+};
+
 export const BUCKET_RANGES = [];
 for (let low = MIN_PROBLEM_RATING; low < MAX_PROBLEM_RATING; low += BUCKET_WIDTH) {
   BUCKET_RANGES.push({ low, high: low + BUCKET_WIDTH, label: `${low}-${low + BUCKET_WIDTH}` });
