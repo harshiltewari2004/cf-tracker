@@ -440,3 +440,19 @@ different UTC instant, misaligning with the UTC-anchored DailyPlan `date`
 so Mongo `$lte` against `scheduledFor` (a Date) compares chronologically and the
 `(user, date)` unique index dedups correctly — a Date-vs-string `$lte` compares
 by BSON type order, silently returning wrong results.
+
+
+
+TODO(harshil): verify whether runDailyRefresh updates CFProfile.currentRating/rank from user.info, or if rating is onboarding-write-only. If onboarding-only, rating goes stale over time — acceptable for MVP, revisit when real users accumulate. Surfaced during Phase 3 DailyPlanEngine smoke test (stale test profile had no rating).
+
+## ReliabilityEngine — null-safe time checks, contest-driven loop
+
+`refresh` iterates the (up-to-)6 contests, NOT the ContestProblemResult rows —
+the metric's denominator is contests, and a contest where B was never attempted
+(no submission → no row) must still count as not-reliable. Row-driven iteration
+would be blind to unattempted problems, silently shrinking the denominator.
+`aReliable = row?.status === 'solved' && row.firstACTime < RELIABLE_A_MINUTES` —
+the solved-check short-circuits before the time comparison so a null firstACTime
+can't coerce (null < 15 === true) into a false-positive reliable. Uses `$set`
+(not `$setOnInsert`): ReliabilityScore is a pure derived cache (03 §11), meant to
+be overwritten on every contest — opposite of DailyPlan's $setOnInsert.

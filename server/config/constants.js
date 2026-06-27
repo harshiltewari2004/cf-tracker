@@ -21,7 +21,10 @@ export const INGEST_BACKOFF_DELAY_MS = 5000;
 export const INGEST_KEEP_COMPLETED=100;
 export const INGEST_KEEP_FAILED=500;
 export const GAP_BETA = 0.4;
-
+export const RELIABLE_A_MINUTES=15;
+export const RELIABLE_B_MINUTES=40;
+export const RELIABILITY_WINDOW=6;
+export const RELIABILITY_TARGET=4;
 export const DAILY_PLAN_SIZE=3;
 export const COLD_START_TAG_SMOOTHING=1;
 export const PLAN_TYPE = {
