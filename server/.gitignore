@@ -1,2 +1,4 @@
 verify-indexes.js
 scripts/.cohort-cache.json
+scripts/smokeReliability.js
+scripts/smokeDailyPlan.js
