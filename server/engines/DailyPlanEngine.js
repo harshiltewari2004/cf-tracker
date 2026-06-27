@@ -8,8 +8,8 @@ import {
 import { getStretchZoneBuckets } from "../utils/bucketUtils.js";
 import { AppError } from "../utils/errors.js";
 import Submission from '../models/Submission.js';
-import Problem from "../models/Problem.js";
-import { DAILY_PLAN_SIZE,STRETCH_ZONE_SPAN } from "../config/constants.js";
+
+import { DAILY_PLAN_SIZE} from "../config/constants.js";
 import { PLAN_TYPE } from "../config/constants.js";
 import UpSolveQueue from '../models/UpsolveQueue.js';
 import {getDateOnly} from '../utils/dateUtils.js';
@@ -161,7 +161,7 @@ const selectGapProblems = async(userId,{low,high},count,seendIds)=>{
 };
 
 const selectUpsolveProblems = async(userId,date)=>{
-  const date = getDateOnly(date);
+  const today = getDateOnly(date);
 
   const entry = await UpSolveQueue.findOne({
     user:userId,
