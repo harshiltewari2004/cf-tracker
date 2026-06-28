@@ -63,3 +63,4 @@ export const COHORT = {
     { country: null, minRating: 1300, maxRating: 1700, fallbackUsed: '1300-1700_global' },
   ],
 };
+export const UPSOLVE_SCHEDULE_DELAY_MS = 24 * 60 * 60 * 1000; 

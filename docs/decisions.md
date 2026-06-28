@@ -456,3 +456,5 @@ the solved-check short-circuits before the time comparison so a null firstACTime
 can't coerce (null < 15 === true) into a false-positive reliable. Uses `$set`
 (not `$setOnInsert`): ReliabilityScore is a pure derived cache (03 §11), meant to
 be overwritten on every contest — opposite of DailyPlan's $setOnInsert.
+
+ContestFeedbackEngine — invocation & transaction boundary. Engine is woven into the CONTESTANT write-pipeline fan-out (04 §7), not a standalone peer caller. extractContestFails is pure (deltas in a Map, no writes); seedUpsolveQueue writes best-effort outside the transaction. seedUpsolveQueue uses findOneAndUpdate + upsert + $setOnInsert (not $set) so a re-fail or BullMQ retry never clobbers user-authored status (completed/skipped) — same reasoning as DailyPlan, opposite of ReliabilityScore's $set. After-signup gate checked once per contest (single startTime). UPSOLVE_SCHEDULE_DELAY_MS added to constants.js as its own named constant rather than reusing AUTH_COOKIE_MAX_AGE_MS (value collision, meaning unrelated).
