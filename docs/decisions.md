@@ -458,3 +458,34 @@ can't coerce (null < 15 === true) into a false-positive reliable. Uses `$set`
 be overwritten on every contest — opposite of DailyPlan's $setOnInsert.
 
 ContestFeedbackEngine — invocation & transaction boundary. Engine is woven into the CONTESTANT write-pipeline fan-out (04 §7), not a standalone peer caller. extractContestFails is pure (deltas in a Map, no writes); seedUpsolveQueue writes best-effort outside the transaction. seedUpsolveQueue uses findOneAndUpdate + upsert + $setOnInsert (not $set) so a re-fail or BullMQ retry never clobbers user-authored status (completed/skipped) — same reasoning as DailyPlan, opposite of ReliabilityScore's $set. After-signup gate checked once per contest (single startTime). UPSOLVE_SCHEDULE_DELAY_MS added to constants.js as its own named constant rather than reusing AUTH_COOKIE_MAX_AGE_MS (value collision, meaning unrelated).
+
+## Phase 3 — Write Pipeline: VIRTUAL path deferred to v1.5
+
+**Date:** 2026-06-29
+
+VIRTUAL write path left as a stub in `SubmissionWriter.js` (throws
+"not implemented yet"). Deferred deliberately:
+
+- Virtual contest loop is v1.5 per `02` scope phasing, not MVP. MVP write
+  pipeline needs only PRACTICE (done) and CONTESTANT (next).
+- The VIRTUAL path writes into `VirtualContest.results[]`, but the doc that
+  creates those records — `VirtualContestEngine.scheduleWeeklyVirtual` — is
+  not built yet. Building the write path now means coding against a
+  non-existent creation contract.
+
+### Open question carried to VirtualContestEngine build
+Is `VirtualContest.results[]` **pre-seeded** at scheduling time (one entry
+per contest problem, `status: 'unattempted'`), or does it fill in as the
+user submits? The schema's explicit `unattempted` status value implies
+pre-seeding — `unattempted` can only be represented if every problem has an
+entry from the start. If pre-seeded, the VIRTUAL write path is a guaranteed-
+existing-entry update (locate by `problemIndex`, mutate in place), NOT a
+find-or-create push. Lock this when building the engine; the write path
+depends on it.
+
+### VIRTUAL path semantics (for whoever builds it)
+Per `03` + `02` §4: Submission.insert → VirtualContest.results update →
+TopicBucketScore solves-only increment (all-tags, AC only). Hot invariant:
+virtual fails do NOT feed contestFails and do NOT count toward the 4/6
+success metric. Conditional update rules: don't overwrite firstACTime once
+set; accumulate failCount on pre-AC WAs only.
