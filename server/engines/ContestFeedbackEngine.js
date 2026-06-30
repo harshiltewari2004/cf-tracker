@@ -1,7 +1,5 @@
-import Upsolvequeue from '../models/UpsolveQueue.js';
-import {UPSOLVE_SCHEDULE_DELAY_MS} from '../config/constants.js';
-
-const KEY_SEP='|';
+import UpsolveQueue from '../models/UpsolveQueue.js';
+import {UPSOLVE_SCHEDULE_DELAY_MS,KEY_SEP} from '../config/constants.js';
 
 const makeKey = (topic, bucket)=>`${topic}${KEY_SEP}${bucket}`;
 
@@ -57,7 +55,7 @@ const seedUpsolveQueue = async(
     let seeded = 0;
 
     for(const problem of failedProblems ){
-        await Upsolvequeue.findOneAndUpdate(
+        await UpsolveQueue.findOneAndUpdate(
             {user:userId,problem:problem._id},
             {
                 $setOnInsert:{

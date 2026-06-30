@@ -1,4 +1,4 @@
-import { GAP_BETA } from "../config/constants.js";
+import { GAP_BETA, KEY_SEP } from "../config/constants.js";
 import { clamp } from "../utils/mathUtils.js";
 import Submission from '../models/Submission.js';
 import {getTopicBucketRows} from '../utils/bucketUtils.js';
@@ -109,7 +109,7 @@ export const recalculate = async(userId)=>{
   const now = new Date();
 
   for(const key of allKeys){
-    const [topic,bucket] = key.split('|');
+    const [topic,bucket] = key.split(KEY_SEP);
 
     const solves = solvesByKey.get(key)??0;
     const targetCount = targetByKey.get(key)??0;

@@ -13,6 +13,9 @@ import ContestProblemResult from '../models/ContestProblemResult.js';
 import { AppError, DegradedIngestError } from '../utils/errors.js';
 import * as cfApiClient from './CFApiClient.js';
 import { parseSubmission } from './SubmissionParser.js';
+import * as GapEngine from '../engines/GapEngine.js';
+import * as ReliabilityEngine from '../engines/ReliabilityEngine.js';
+import {seedUpsolveQueue} from '../engines/ContestFeedbackEngine.js';
 
 const resolveProblemRefs = async(parseSubmissions)=>{
     const pairs = new Map();
@@ -143,7 +146,7 @@ const evaluateSkipGuard=({userId,surviving,catalogMisses,missedProblems})=>{
 };
 
 
-const deriveContestResults = async({userId,handle,contestIds})=>{
+const deriveContestResults = async({userId,handle,contestIds,signupDate})=>{
 
     if(contestIds.size === 0){
         return;
@@ -233,10 +236,21 @@ const deriveContestResults = async({userId,handle,contestIds})=>{
         }finally{
             await session.endSession();
         }
+        const failedProblems = cprDocs
+        .filter((d)=>(d.isDiv2A||d.isDiv2B)&&d.status==='failed')
+        .map((d)=>({_id:d.problem}));
+
+        await seedUpsolveQueue(
+            userId,
+            signupDate,
+            cfContestId,
+            contest.startTime,
+            failedProblems
+        );
     }
 };
 
-export const runInitialIngest = async({userId,ingestJobId})=>{
+export const runInitialIngest = async({userId,ingestJobId,signupDate})=>{
     const job = await IngestJob.findById(ingestJobId);
     const profile = await CFProfile.findOne({user:userId});
     if(!job||!profile)throw new AppError('Ingest Job or CF profile not found',404);
@@ -268,8 +282,12 @@ export const runInitialIngest = async({userId,ingestJobId})=>{
         userId,
         handle:profile.handle,
         contestIds:summary.contestantContestIds,
+        signupDate:profile.createdAt,
     });
     
+    await GapEngine.recalculate(userId);
+    await ReliabilityEngine.refresh(userId);
+
     if(summary.newestSeenSubmissionId!=null){
         profile.lastIngestedSubmissionId = summary.newestSeenSubmissionId;
     }
@@ -289,7 +307,7 @@ export const runInitialIngest = async({userId,ingestJobId})=>{
     );
 };
 
-export const runDailyRefresh = async({userId,ingestJobId})=>{
+export const runDailyRefresh = async({userId,ingestJobId,signupDate})=>{
     const job = await IngestJob.findById(ingestJobId);
     const profile = await CFProfile.findOne({user:userId});
     if(!job||!profile){
@@ -316,7 +334,11 @@ export const runDailyRefresh = async({userId,ingestJobId})=>{
         userId,
         handle:profile.handle,
         contestIds:summary.contestantContestIds,
+        signupDate:profile.createdAt,
     });
+
+    await GapEngine.recalculate(userId);
+    await ReliabilityEngine.refresh(userId);
 
     if(summary.newestSeenSubmissionId!==null){
         profile.lastIngestedSubmissionId = summary.newestSeenSubmissionId;

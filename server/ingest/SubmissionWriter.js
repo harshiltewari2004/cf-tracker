@@ -1,8 +1,7 @@
 import Submission from '../models/Submission.js';
 import TopicBucketScore from '../models/TopicBucketScore.js';
 import logger from '../config/logger.js';
-
-const DUPLICATE_KEY_ERROR=11000;
+import { MONGO_DUPLICATE_KEY_CODE } from '../config/constants.js';
 
 export const writeSubmission = async(submission,context)=>{
     switch (submission.participantType){
@@ -22,7 +21,7 @@ const writePracticeSubmission = async(submission,context)=>{
         await Submission.create(submission);
     }
     catch(err){
-        if(err.code===DUPLICATE_KEY_ERROR){
+        if(err.code===MONGO_DUPLICATE_KEY_CODE){
             return;
         }
         throw err;
