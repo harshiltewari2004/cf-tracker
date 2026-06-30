@@ -142,3 +142,6 @@ export const recalculate = async(userId)=>{
   }
 
 };
+export const getWeakness = async(userId)=>{
+  return (TopicBucketScore.find({user:userId})).sort({finalGap:-1}).lean();
+};

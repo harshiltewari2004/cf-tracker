@@ -10,6 +10,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { authLimiter,apiLimiter,pollLimiter } from './middleware/rateLimiter.js';
 import onboardingRouter from './routes/onboarding.js';
 import reliabilityRouter from './routes/reliability.js';
+import weaknessRouter from './routes/weakness.js';
 
 import './workers/ingestWorker.js';
 import { connectDB } from './config/db.js';
@@ -41,6 +42,8 @@ app.use('/api/onboarding',apiLimiter,onboardingRouter);
 app.use('/api/ingest',pollLimiter,ingestRouter);
 
 app.use('/api/reliability', apiLimiter, reliabilityRouter);
+
+app.use('/api/weakness', apiLimiter, weaknessRouter);
 
 app.use(errorHandler);
 
