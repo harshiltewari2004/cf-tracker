@@ -9,6 +9,7 @@ import userRouter from './routes/user.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { authLimiter,apiLimiter,pollLimiter } from './middleware/rateLimiter.js';
 import onboardingRouter from './routes/onboarding.js';
+import reliabilityRouter from './routes/reliability.js';
 
 import './workers/ingestWorker.js';
 import { connectDB } from './config/db.js';
@@ -38,6 +39,8 @@ app.use('/api/auth',authRouter,userRouter);
 app.use('/api/onboarding',apiLimiter,onboardingRouter);
 
 app.use('/api/ingest',pollLimiter,ingestRouter);
+
+app.use('/api/reliability', apiLimiter, reliabilityRouter);
 
 app.use(errorHandler);
 

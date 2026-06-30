@@ -85,3 +85,7 @@ export const refresh = async(userId)=>{
     );
     return score;
 }
+
+export const getReliability = async(userId)=>{
+    return ReliabilityScore.findOne({user:userId}).lean();
+};
