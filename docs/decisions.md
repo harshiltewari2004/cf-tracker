@@ -489,3 +489,49 @@ TopicBucketScore solves-only increment (all-tags, AC only). Hot invariant:
 virtual fails do NOT feed contestFails and do NOT count toward the 4/6
 success metric. Conditional update rules: don't overwrite firstACTime once
 set; accumulate failCount on pre-AC WAs only.
+
+## Benchmark refresh runs in-process via cron, not through a BullMQ queue/worker
+
+**Date:** 2026-06-30
+**Status:** Accepted (MVP)
+**Area:** Async jobs / benchmark pipeline
+
+### Context
+`04_architecture.md` §5 prescribes a `benchmarkQueue` + `benchmarkWorker` for the
+weekly cohort refresh, mirroring the ingest queue/worker topology. The cron in
+`jobs/benchmarkRefreshJob.js` instead calls `BenchmarkEngine.refresh()` directly,
+with no queue and no worker. This is a deliberate deviation from §5, logged here
+rather than drifted silently.
+
+### Decision
+`benchmarkRefreshJob.js` invokes `BenchmarkEngine.refresh()` in-process on the
+weekly cron tick (Sunday 03:00 UTC). No `benchmarkQueue.js`, no `benchmarkWorker.js`
+built for MVP.
+
+### Rationale
+- **Shadow-version safety (`04` §11).** `refresh()` writes target counts under a new,
+  higher version and swaps the active pointer only on full completion. A mid-scan
+  crash leaves an orphaned half-written version; the previous version stays live and
+  authoritative. A failed refresh degrades to *stale*, never *corrupt* — and staleness
+  is an explicitly tolerated state (`01_problem_statement.md`: "hold the previous
+  benchmark version"). This is the property that makes a queue's retry/DLQ machinery
+  low-value here.
+- **I/O-bound, not CPU-bound.** The 2.5–3.5h cohort scan awaits CF under Bottleneck
+  at ~1 req/sec. It never blocks the event loop; Express keeps serving during the scan.
+- **Internal resilience.** `refresh()` already skips-and-continues per candidate on a
+  CF hiccup, so a single flaky call doesn't sink the scan — only a process restart does.
+- **Cadence.** Runs weekly; cohort populations drift gradually. The cost of a missed
+  run is one extra week of staleness, recovered on the next tick.
+- **Scope.** Building a queue + worker for a single weekly, staleness-tolerant,
+  internally-resilient job is disproportionate for MVP.
+
+### Risks accepted
+- No automatic retry of the whole job on catastrophic failure (lost until next Sunday).
+- No dead-letter visibility — failure surfaces only as a Pino `error` log
+  (`04` §10 deems Pino sufficient for MVP).
+
+### Revisit when
+- Multi-instance deploy: `04` §12 already calls for replacing `node-cron` with BullMQ
+  repeatable jobs (node-cron fires on every replica; repeatable jobs fire once cluster-wide).
+  Migrating the benchmark refresh onto `benchmarkQueue` + `benchmarkWorker` is the natural
+  step at that point. B is the MVP point on the path §12 already drew, not a dead end.

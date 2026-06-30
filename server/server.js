@@ -13,6 +13,8 @@ import onboardingRouter from './routes/onboarding.js';
 import './workers/ingestWorker.js';
 import { connectDB } from './config/db.js';
 import ingestRouter from './routes/ingest.js';
+import { scheduleDailyRefresh } from './jobs/dailyRefreshJob.js';
+import { scheduleBenchmarkRefresh } from './jobs/benchmarkRefreshJob.js';
 
 const app = express();
 
@@ -41,6 +43,8 @@ app.use(errorHandler);
 
 const start = async()=>{
   await connectDB();
+  scheduleDailyRefresh();
+  scheduleBenchmarkRefresh();
 app.listen(env.PORT, () => {
   console.log(`✅ Server running on http://localhost:${env.PORT}`);
 });

@@ -30,6 +30,7 @@ export const COLD_START_TAG_SMOOTHING=1;
 export const KEY_SEP = '|';
 export const DAILY_REFRESH_CRON = '0 2 * * *';
 export const CRON_TIMEZONE = 'Etc/UTC';
+export const BENCHMARK_REFRESH_CRON = '0 3 * * 0';
 export const PLAN_TYPE = {
   COLD_START: 'cold_start',
   GAP_DRIVEN: 'gap_driven',
