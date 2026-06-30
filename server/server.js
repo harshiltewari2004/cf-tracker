@@ -11,6 +11,7 @@ import { authLimiter,apiLimiter,pollLimiter } from './middleware/rateLimiter.js'
 import onboardingRouter from './routes/onboarding.js';
 import reliabilityRouter from './routes/reliability.js';
 import weaknessRouter from './routes/weakness.js';
+import contestsRouter from './routes/contests.js';
 
 import './workers/ingestWorker.js';
 import { connectDB } from './config/db.js';
@@ -38,6 +39,8 @@ app.use('/api',authLimiter,authRouter);
 app.use('/api/auth',authRouter,userRouter);
 
 app.use('/api/onboarding',apiLimiter,onboardingRouter);
+
+app.use('/api/contests', apiLimiter, contestsRouter);
 
 app.use('/api/ingest',pollLimiter,ingestRouter);
 

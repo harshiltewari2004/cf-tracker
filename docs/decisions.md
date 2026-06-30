@@ -535,3 +535,29 @@ built for MVP.
   repeatable jobs (node-cron fires on every replica; repeatable jobs fire once cluster-wide).
   Migrating the benchmark refresh onto `benchmarkQueue` + `benchmarkWorker` is the natural
   step at that point. B is the MVP point on the path §12 already drew, not a dead end.
+
+  ## GET /api/contests/:cfContestId/feedback deferred — no gap-history data model
+
+**Date:** 2026-06-30
+**Status:** Accepted (MVP)
+**Area:** API routes / contest detail
+
+### Context
+`04_architecture.md` §4.3 lists `GET /api/contests/:cfContestId/feedback`, surfacing
+`<GapImpactList />` (`05` §3.5) — "this contest shifted these (topic, bucket) gaps."
+
+### Decision
+Not built for MVP. `routes/contests.js` mounts only list + detail.
+
+### Rationale
+Answering "which gaps this contest shifted" requires a per-contest before/after gap
+delta. `GapEngine.recalculate` writes `TopicBucketScore` via `$set` wholesale recompute
+(recompute-from-scratch model) — it overwrites current values and stores no history, so
+there is no snapshot to diff against. Building this for real means adding a gap-history
+collection or per-contest delta capture — a change to locked `03_data_models.md`, not a
+wiring task. The contest detail page is useful without it (summary + problem matrix +
+upsolve-added list carry it).
+
+### Revisit when
+Gap-history is introduced (would also benefit progress-over-time charts, deferred to v2
+per `05` §1). At that point a stored delta makes `/feedback` answerable.
