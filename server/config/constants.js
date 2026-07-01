@@ -32,6 +32,7 @@ export const DAILY_REFRESH_CRON = '0 2 * * *';
 export const CRON_TIMEZONE = 'Etc/UTC';
 export const BENCHMARK_REFRESH_CRON = '0 3 * * 0';
 export const CONTESTS_DEFAULT_LIMIT=20;
+
 export const PLAN_TYPE = {
   COLD_START: 'cold_start',
   GAP_DRIVEN: 'gap_driven',
@@ -69,3 +70,6 @@ export const COHORT = {
   ],
 };
 export const UPSOLVE_SCHEDULE_DELAY_MS = 24 * 60 * 60 * 1000; 
+
+export const DASHBOARD_RECENT_CONTESTS_LIMIT = 3;
+export const DASHBOARD_TOP_GAPS_LIMIT = 3;
