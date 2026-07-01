@@ -210,7 +210,7 @@ export const generatePlan = async(userId,date)=>{
   const isColdStart = !user.coldStartComplete;
   const problems = isColdStart
   ?await getColdStartPlan(userId)
-  :await getColdStartPlan(userId,planDate);
+  :await gapDrivenPlan(userId,planDate);
 
   const planType = isColdStart?PLAN_TYPE.COLD_START:PLAN_TYPE.GAP_DRIVEN;
 
