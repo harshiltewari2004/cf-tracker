@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import CFProfile from "../models/CFProfile.js";
 import Problem from "../models/Problem.js";
 import TopicBucketScore from "../models/TopicBucketScore.js";
@@ -221,3 +222,33 @@ export const generatePlan = async(userId,date)=>{
   );
   return plan;
 };
+
+export const markSolved = async(userId,problemSubId)=>{
+
+  if(!mongoose.isValidObjectId(problemSubId)){
+    throw new AppError('Invalid problem id',400);
+  }
+
+  const subId = new mongoose.Types.ObjectId(problemSubId);
+
+  const planDate = getDateOnly(new Date());
+  const now = new Date();
+
+  const plan = await DailyPlan.findOneAndUpdate(
+    {user:userId,date:planDate,'problems._id':problemSubId},
+    {$set:{'problems.$.status':'solved','problems.$.solvedAt':now}},
+    {new:true}
+  );
+  if(!plan){
+  throw new AppError('Plan problem not found',404);
+}
+
+const allSolved = plan.problems.every((p)=>p.status==='solved');
+
+if(allSolved&&!plan.completed){
+  plan.completed = true;
+  await plan.save();
+}
+return plan;
+};
+
