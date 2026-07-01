@@ -12,6 +12,7 @@ import onboardingRouter from './routes/onboarding.js';
 import reliabilityRouter from './routes/reliability.js';
 import weaknessRouter from './routes/weakness.js';
 import contestsRouter from './routes/contests.js';
+import planRouter from './routes/plan.js';
 
 import './workers/ingestWorker.js';
 import { connectDB } from './config/db.js';
@@ -47,6 +48,8 @@ app.use('/api/ingest',pollLimiter,ingestRouter);
 app.use('/api/reliability', apiLimiter, reliabilityRouter);
 
 app.use('/api/weakness', apiLimiter, weaknessRouter);
+
+app.use('/api/plan', apiLimiter, planRouter);
 
 app.use(errorHandler);
 
