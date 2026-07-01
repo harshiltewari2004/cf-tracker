@@ -252,3 +252,68 @@ if(allSolved&&!plan.completed){
 return plan;
 };
 
+export const replaceProblem = async(userId,problemSubId)=>{
+  if(!mongoose.isValidObjectId(problemSubId)){
+    throw new AppError('Invalid problem id',400);
+  }
+  const subId = new mongoose.Types.ObjectId(problemSubId);
+
+  const planDate = getDateOnly(new Date());
+
+  const plan = await DailyPlan.findOne({user:userId,date:planDate}).lean();
+
+  if(!plan){
+    throw new AppError('Plan problem not found',404);
+  }
+  const target = plan.problems.find((p)=>String(p._id)===String(subId));
+  if(!target){
+    throw new AppError('Plan problem not found',404);
+  }
+
+  const profile = await CFProfile.findOne({user:userId}).lean();
+  if(!profile||profile.currentRating==null){
+    throw new AppError('Cannot replace problem no current rating',422);
+  }
+
+  const zone ={
+    low:profile.currentRating,
+    high:profile.currentRating+STRETCH_ZONE_SPAN,
+  };
+
+  const seenDocs = await Submission.find({user:userId}).select('problem').lean();
+  const exclusion = new Set(seenDocs.map((s)=>String(s.problem)));
+
+  for(const p of plan.problems){
+    exclusion.add(String(p.problem));
+  }
+  const picks = await selectGapProblems(userId,zone,1,exclusion);
+  if(picks.length===0){
+    throw new AppError('No replacement problem available',422);
+  }
+  const replacement = picks[0].problem;
+
+  const now = new Date();
+
+  const updated = await DailyPlan.findOneAndUpdate(
+    {user:userId,date:planDate,'problems._id':subId},
+    {
+      $set:{
+        'problems.$.problem':replacement,
+        'problems.$.status':'pending',
+        completed:false,
+      },
+      $push:{
+        replacedProblems:{
+          original:target.problem,
+          replacement,
+          replacedAt:now,
+        },
+      },
+    },
+    {new:true }
+  );
+  if(!updated){
+    throw new AppError('Plan problem not found',404);
+  }
+  return updated;
+};

@@ -561,3 +561,52 @@ upsolve-added list carry it).
 ### Revisit when
 Gap-history is introduced (would also benefit progress-over-time charts, deferred to v2
 per `05` §1). At that point a stored delta makes `/feedback` answerable.
+
+## 2026-07-01 — POST /api/plan/problems/:id/replace
+
+**Decision: replaceProblem is read-then-atomic-write, not read-modify-write.**
+The handler reads today's plan first to gather two inputs it can't get any other
+way: (1) the target slot's current `problem` ref (needed as `original` in the
+audit entry) and (2) the full exclusion set. The actual mutation is still a single
+atomic `findOneAndUpdate` with a positional `$set` + `$push`. The read only
+assembles inputs; it does not participate in the write, so this does NOT
+reintroduce the lost-update race that the positional `$set` in markSolved avoids.
+Stale-exclusion race between read and write is tolerated (replace is a rare manual
+click; worst case is a slightly stale exclusion set) — no locking.
+
+**Decision: exclusion set = seen submissions ∪ all current plan problems.**
+Passed as `seendIds` to the existing `selectGapProblems`. Seen submissions prevent
+re-recommending an attempted problem; the current plan's problem refs prevent
+(a) picking a problem already in another slot (duplicate) and (b) re-picking the
+slot being replaced (no-op self-swap). The target's own ref is already covered
+because it's a member of `plan.problems[]`.
+
+**Decision: empty substitute search → AppError 422, not 404/400.**
+`selectGapProblems` returning `[]` is a valid request that cannot be fulfilled in
+the current data state (no eligible in-zone problem after exclusions). Per 02 §1
+the system never recommends outside the stretch zone even if it means fewer
+options, so "no substitute" is a spec-honored outcome, not a not-found (plan
+exists) or bad-request (request was well-formed). 422 (semantic error) is
+consistent with generatePlan's no-currentRating 422 (08 §6).
+
+**Decision: completed: false hardcoded in the $set, not recomputed.**
+Replacing a slot always sets that slot's status to `pending`, so the plan can
+never be complete immediately after a replace. `completed` is therefore forced
+false in the same atomic $set — no read-back or `.every()` recompute needed. This
+shortcut is safe ONLY for replace; markSolved must still recompute because solving
+a slot *may or may not* complete the plan depending on the other two.
+
+**Ownership:** replaceProblem lives in DailyPlanEngine (owns DailyPlan, reuses
+selectGapProblems). Controller thin. Consistent with markSolved / generatePlan.
+
+**Test caveat — replace verified on hand-seeded state, not natural gap-driven flow.**
+The replace happy path could not be exercised by the test account (6a43be…,
+handle `testseed`) as-is: it has no ingest data, so `TopicBucketScore` was empty
+and `selectGapProblems` correctly returned [] → 422. To reach the 200 path, a
+single TopicBucketScore row was hand-seeded (topic "greedy", bucket "1200-1400",
+finalGap 0.8, gap-formula-consistent: solves 2 / targetCount 10 → baseGap 0.8,
+contestOpportunities 0 → penalty 0). The plan under test is also `cold_start`
+(tag-distribution), not gap-driven. So replace's swap + audit-push mechanism is
+proven, but the full ingest → GapEngine → gap-driven-plan → replace flow is not.
+Same caveat class as the UpsolveQueue-seeding no-op in this test env. Re-verify
+against a naturally-ingested account when one exists.
