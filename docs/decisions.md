@@ -627,3 +627,11 @@ Router file not created, routes not mounted. VirtualContestEngine is v1.5 scope
 (02 §Scope phasing); an unmounted route can't drift or need maintenance. If a
 client ever probes it, Express returns 404, which is accurate: the resource
 does not exist yet.
+
+## 2026-07-02 — ingestStore scope narrowed to client-only flags
+05 §6 assigns "polling state" to ingestStore; 08 §5 forbids server data in
+Zustand. Resolved: React Query owns ingest status data (queryKey
+['ingest','status'], refetchInterval 3000ms) — key dedup natively provides
+the "one polling source, two subscribers" property 05 §6 wanted. ingestStore
+holds only client-session facts (ingestActive flag, future bannerDismissed).
+No conflict: intent honored, mechanism corrected to respect 08 §5.
