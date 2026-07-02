@@ -610,3 +610,20 @@ contestOpportunities 0 → penalty 0). The plan under test is also `cold_start`
 proven, but the full ingest → GapEngine → gap-driven-plan → replace flow is not.
 Same caveat class as the UpsolveQueue-seeding no-op in this test env. Re-verify
 against a naturally-ingested account when one exists.
+
+## 2026-07-02 — Frontend dependency versions ahead of locked stack (accepted drift)
+Week 0 scaffold installed React 19.2, React Router 7.15, and Zod 4.4; locked docs
+(04 §2, 05 §2) specify React 18 + Router v6. Kept installed versions after
+compatibility verification (shadcn/ui, framer-motion, recharts, RHF all support
+React 19; resolvers 5.x supports Zod 4). Constraints accepted with this decision:
+- React Router used in DECLARATIVE MODE ONLY (BrowserRouter/Routes/Outlet — the
+  v6-identical API). No framework-mode features (loaders/actions). Docs' v6
+  patterns remain valid as written.
+- Zod 4 error API (error.issues, z.email()) is the client convention going forward.
+- Tailwind stays 3.4 per locked stack; shadcn CLI configured for v3, not v4.
+
+## 2026-07-02 — /api/virtual/* left unmounted (closes PENDING from Phase 3)
+Router file not created, routes not mounted. VirtualContestEngine is v1.5 scope
+(02 §Scope phasing); an unmounted route can't drift or need maintenance. If a
+client ever probes it, Express returns 404, which is accurate: the resource
+does not exist yet.
