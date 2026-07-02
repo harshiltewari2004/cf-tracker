@@ -28,5 +28,7 @@ export const apiLimiter = rateLimit({
 export const pollLimiter = rateLimit({
     windowMs:POLL_RATE_LIMIT.WINDOW_MS,
     max:POLL_RATE_LIMIT.MAX,
+    standardHeaders:true,
+    legacyHeaders:false,
     message: { success: false, message: 'Too many requests, please try again later' },
 });

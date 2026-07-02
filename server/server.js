@@ -36,9 +36,10 @@ app.get('/api/health', (req, res) => {
   res.json({ success: true, data: { status: 'ok', env: env.NODE_ENV } });
 });
 
-app.use('/api',authLimiter,authRouter);
 
-app.use('/api/auth',authRouter,userRouter);
+
+app.use('/api/auth', apiLimiter, authRouter);
+app.use('/api/user', apiLimiter, userRouter);
 
 app.use('/api/onboarding',apiLimiter,onboardingRouter);
 
