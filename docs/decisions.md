@@ -635,3 +635,15 @@ Zustand. Resolved: React Query owns ingest status data (queryKey
 the "one polling source, two subscribers" property 05 §6 wanted. ingestStore
 holds only client-session facts (ingestActive flag, future bannerDismissed).
 No conflict: intent honored, mechanism corrected to respect 08 §5.
+
+Client constants exception: path literals consumed by exactly one module may stay co-located with that module (e.g., interceptor path lists in api/client.ts). Rationale: moving interceptor-private strings to lib/constants.ts invites imports that shouldn't exist; a named constant at the top of its single consumer satisfies the no-magic-values rule's intent. lib/constants.ts remains the home for anything consumed by 2+ modules.
+
+Guard architecture: separate ProtectedRoute / GuestRoute / RootRedirect components (pathless parent routes), not guard-in-layout, not a requireAuth prop. Bootstrap checkAuth fires once in App.tsx; guards are pure readers. Per 08 §15 boring-code tiebreak.
+
+Interceptor constants exception: path literals consumed by exactly one module stay co-located (EXPECTED_401_PATHS in client.ts). lib/constants.ts remains home for anything shared by 2+ modules.
+
+Rename: AUTH_PATHS/isAuthAttempt → EXPECTED_401_PATHS/isExpected401; /api/auth/me added — 401 there is a normal answer, not session expiry.
+
+sonner.tsx: next-themes removed (Next.js-only dep, stack locked); static theme="light". (Skip if your generated file never had it — tell me.)
+
+baseUrl regression note: shadcn init re-adds baseUrl; removed again, paths now self-relative. Watch on any future shadcn add.
