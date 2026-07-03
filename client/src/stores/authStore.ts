@@ -2,6 +2,8 @@ import {create} from 'zustand';
 
 import type {User} from '@/types/models';
 
+import { authService } from '@/api/authService';
+
 type AuthStatus = 'resolving'|'authenticated'|'unauthenticated';
 
 interface AuthState {
@@ -9,6 +11,7 @@ interface AuthState {
     status:AuthStatus;
     setUser:(user:User)=>void;
     clearAuth:()=>void;
+    checkAuth: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set)=>({
@@ -16,4 +19,12 @@ export const useAuthStore = create<AuthState>((set)=>({
     status:'resolving',
     setUser:(user)=>set({user,status:'authenticated'}),
     clearAuth:()=>set({user:null,status:'unauthenticated'}),
+    checkAuth: async () => {
+  try {
+    const user = await authService.me();
+    set({ status: 'authenticated', user });
+  } catch {
+    set({ status: 'unauthenticated', user: null });
+  }
+},
 }));

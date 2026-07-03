@@ -1,5 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { QUERY_STALE_TIME_MS } from '@/lib/constants';
+import { useAuthStore } from './stores/authStore';
+import { useEffect } from 'react';
+import { RouterProvider } from 'react-router-dom';
+import { router } from './router';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -9,16 +13,18 @@ const queryClient = new QueryClient({
   },
 });
 
+
+
 function App() {
+  const checkAuth = useAuthStore((s)=>s.checkAuth);
+
+useEffect(()=>{
+  checkAuth();
+},[checkAuth]);
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
-        <div className="p-8 rounded-lg bg-slate-800">
-          <h1 className="text-2xl font-bold mb-4">CF Tracker</h1>
-          <p className="text-sm text-slate-400">React Query mounted.</p>
-        </div>
-      </div>
-    </QueryClientProvider>
+    <RouterProvider router={router} />
+  </QueryClientProvider>
   );
 }
 
