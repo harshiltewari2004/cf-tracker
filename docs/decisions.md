@@ -647,3 +647,61 @@ Rename: AUTH_PATHS/isAuthAttempt → EXPECTED_401_PATHS/isExpected401; /api/auth
 sonner.tsx: next-themes removed (Next.js-only dep, stack locked); static theme="light". (Skip if your generated file never had it — tell me.)
 
 baseUrl regression note: shadcn init re-adds baseUrl; removed again, paths now self-relative. Watch on any future shadcn add.
+
+## 2026-07-04 — Piece 5: Auth pages
+
+### D-P5-1: Auth actions live in authStore, not React Query mutations
+Per 05 §6 ("authStore — current user, login/logout actions"). All three
+useMutation jobs are redundant or wrong for auth: pending state comes from
+RHF isSubmitting, retry on a wrong password is actively harmful, and no
+cached queries exist at login time to invalidate. Consequence: 06's
+hooks/useAuth.ts goes unrealized — deliberate deviation, not drift.
+Store actions call authService methods (05 §7 layering), throw on failure,
+never navigate.
+
+### D-P5-2: GuestRoute bounces authenticated users to /; RootRedirect is
+### the single three-way home chooser
+/login | /onboarding/handle | /dashboard branched on user.onboardingCompleted.
+GuestRoute stays policy-free — it would otherwise need onboarding-routing
+knowledge. Cost: one extra hop (/login → / → /dashboard), invisible via
+replace on all Navigates. Symmetric on logout: store flips, ProtectedRoute
+bounces reactively. No navigate() anywhere in the auth flow.
+
+### D-P5-3: toAuthUser serializer in authService (server)
+Single source for the auth-response user shape across register/login/me.
+Chosen over inline after finding the me-handler projection trap: me uses
+.select() (08 §4), and a field added to the response but not the projection
+returns silently undefined. Projection updated to
+'name email onboardingCompleted'.
+
+### D-P5-4: errorHandler maps Mongo E11000 → 409
+Two same-email signups racing past the findOne check hit the email unique
+index (03 §1); Mongoose throws MongoServerError code 11000, which is not
+an AppError and previously fell through to the 500 branch (08 §7).
+Duplicate-key races are operational conflicts, not bugs. Check sits before
+the isOperational branch.
+
+### D-P5-5: login/signup throw; forms own error display via RHF root error
+Errors propagate untouched from store actions to the form, which unwraps
+the server's message field (08 §6 envelope) into setError('root', ...).
+Safe because /api/auth/login and /api/auth/register are in
+EXPECTED_401_PATHS — the client.ts interceptor's hard-redirect is reserved
+for unexpected 401s.
+
+### D-P5-6: Auth-route Zod validation added (registerSchema, loginSchema)
+Gap found during Piece 5: auth routes had no body validation, violating
+08 §14. Constraints defined in config/constants.js (PASSWORD, USER_NAME)
+and mirrored in client lib/constants.ts (06 §1 — deliberate re-declaration).
+loginSchema validates shape only (password min(1)), not policy: a wrong
+password must fail as 401 from authService, not 400 from the validator,
+and policy changes must not lock out existing users. Zod 4 idiom: z.email()
+top-level, not z.string().email().
+
+### D-P5-7: Projection audit rule for serialized responses
+Two projection-traps in one session (me handler, then authService.login's data
+path). res.json drops undefined keys, so a field missing from a fetch vanishes
+silently even when the serializer names it. Rule: when adding a field to
+toAuthUser, audit every query that feeds it, not just the response shape.
+Exception logged: authService.login keeps the inclusive .select('+passwordHash')
+full-document fetch — narrowing it to a field list would recreate the exclusive-
+projection trap for every future toAuthUser field.
