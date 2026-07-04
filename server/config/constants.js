@@ -73,3 +73,13 @@ export const UPSOLVE_SCHEDULE_DELAY_MS = 24 * 60 * 60 * 1000;
 
 export const DASHBOARD_RECENT_CONTESTS_LIMIT = 3;
 export const DASHBOARD_TOP_GAPS_LIMIT = 3;
+
+export const PASSWORD = {
+  MIN_LENGTH: 8,
+  MAX_LENGTH: 72, 
+};
+
+export const USER_NAME = {
+  MIN_LENGTH: 1,
+  MAX_LENGTH: 50,
+};

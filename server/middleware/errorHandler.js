@@ -1,9 +1,14 @@
 import logger from '../config/logger.js';
 import { AppError } from '../utils/errors.js';
 import { env } from '../config/env.js';
+import { success } from 'zod';
 
 export const errorHandler = (err, req, res, next) => {
   
+    if(err.code===11000){
+      return res.status(409).json({success:false,message:'Email already registered'});
+    }
+
   if (err instanceof AppError && err.isOperational) {
     logger.warn(
       { err: { message: err.message, statusCode: err.statusCode }, path: req.path, userId: req.userId },

@@ -33,7 +33,7 @@ export const register = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      data: { id: user._id, name: user.name, email: user.email },
+      data: authService.toAuthUser(user),
     });
   } catch (err) {
     next(err);
@@ -51,7 +51,7 @@ export const login = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      data: { id: user._id, name: user.name, email: user.email },
+     data: authService.toAuthUser(user),
     });
   } catch (err) {
     next(err);
@@ -73,7 +73,7 @@ export const logout = async (req, res, next) => {
 
 export const me = async (req, res, next) => {
   try {
-    const user = await User.findById(req.userId).select("name email").lean();
+    const user = await User.findById(req.userId).select("name email onboardingCompleted").lean();
     if (!user) {
       throw new AppError("User not found", 404);
     }
@@ -81,7 +81,7 @@ export const me = async (req, res, next) => {
       .status(200)
       .json({
         success: true,
-        data: { id: user._id, name: user.name, email: user.email },
+        data: authService.toAuthUser(user),
       });
   } catch (err) {
     next(err);

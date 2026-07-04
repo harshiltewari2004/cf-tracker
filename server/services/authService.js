@@ -6,6 +6,7 @@ import { BCRYPT_COST_FACTOR } from '../config/constants.js';
 import { email } from 'zod';
 import User from '../models/User.js';
 import { AppError } from '../utils/errors.js';
+import { use } from 'react';
 
 export const hashPassword = async (plainPassword)=>{
     return bcrypt.hash(plainPassword,BCRYPT_COST_FACTOR);
@@ -26,8 +27,7 @@ export const verifyToken = (token) =>{
 const DUMMY_HASH = bcrypt.hashSync('cf-tracker-dummy', BCRYPT_COST_FACTOR);
 
 export const login = async(email,password)=>{
-    const user = await User.findOne({email}).select('+passwordHash');
-
+    const user = await User.findOne({ email }).select('+passwordHash');
     const hashToCheck = user?user.passwordHash:DUMMY_HASH;
     const passwordMatches = await bcrypt.compare(password,hashToCheck);
 
@@ -36,3 +36,10 @@ export const login = async(email,password)=>{
     }
     return user;
 };
+
+export const toAuthUser = (user)=>({
+    id:user._id,
+    name:user.name,
+    email:user.email,
+    onboardingCompleted:user.onboardingCompleted,
+});
