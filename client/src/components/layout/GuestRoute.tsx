@@ -6,6 +6,7 @@ export const GuestRoute = () => {
   const status = useAuthStore((s) => s.status);
 
   if (status === 'resolving') return <LoadingState />;
-  if (status === 'authenticated') return <Navigate to="/dashboard" replace />;
+  if (status === 'authenticated') return <Navigate to="/" replace />;
+  
   return <Outlet />;
 };

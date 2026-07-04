@@ -4,7 +4,12 @@ import { LoadingState } from '@/components/shared/LoadingState';
 
 export const RootRedirect = () => {
   const status = useAuthStore((s) => s.status);
-
+  const user = useAuthStore((s) => s.user);
   if (status === 'resolving') return <LoadingState />;
-  return <Navigate to={status === 'authenticated' ? '/dashboard' : '/login'} replace />;
+  if (status === 'unauthenticated') return <Navigate to="/login" replace />;
+   return user?.onboardingCompleted ? (
+    <Navigate to="/dashboard" replace />
+  ) : (
+    <Navigate to="/onboarding/handle" replace />
+  );
 };

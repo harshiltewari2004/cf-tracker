@@ -12,6 +12,9 @@ interface AuthState {
     setUser:(user:User)=>void;
     clearAuth:()=>void;
     checkAuth: () => Promise<void>;
+    login: (email: string, password: string) => Promise<void>;
+  signup: (name: string, email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set)=>({
@@ -27,4 +30,19 @@ export const useAuthStore = create<AuthState>((set)=>({
     set({ status: 'unauthenticated', user: null });
   }
 },
+login: async (email, password) => {
+    const user = await authService.login(email, password);
+    set({ user, status: 'authenticated' });
+  },
+  signup: async (name, email, password) => {
+    const user = await authService.signup(name, email, password);
+    set({ user, status: 'authenticated' });
+  },
+  logout: async () => {
+    try {
+      await authService.logout();
+    } finally {
+      set({ user: null, status: 'unauthenticated' });
+    }
+  },
 }));

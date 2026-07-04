@@ -2,7 +2,7 @@ export interface User {
     id:string;
     name:string;
     email:string;
-    onBoardingCompleted:boolean;
+    onboardingCompleted:boolean;
     onBoardingStep:number;
     coldStartComplete:boolean;
 };
