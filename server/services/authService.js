@@ -6,7 +6,7 @@ import { BCRYPT_COST_FACTOR } from '../config/constants.js';
 import { email } from 'zod';
 import User from '../models/User.js';
 import { AppError } from '../utils/errors.js';
-import { use } from 'react';
+
 
 export const hashPassword = async (plainPassword)=>{
     return bcrypt.hash(plainPassword,BCRYPT_COST_FACTOR);
