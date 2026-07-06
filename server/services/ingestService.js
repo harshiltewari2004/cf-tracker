@@ -2,7 +2,7 @@ import CFProfile from '../models/CFProfile.js';
 import IngestJob from '../models/IngestJob.js';
 
 export const getIngestStatus=async(userId)=>{
-    const Profile = await CFProfile.findOne({user:userId})
+    const profile = await CFProfile.findOne({user:userId})
     .select('ingestStatus')
     .lean();
 
