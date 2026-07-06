@@ -705,3 +705,36 @@ toAuthUser, audit every query that feeds it, not just the response shape.
 Exception logged: authService.login keeps the inclusive .select('+passwordHash')
 full-document fetch — narrowing it to a field list would recreate the exclusive-
 projection trap for every future toAuthUser field.
+
+D-P6-1: Store learns onboardingCompleted via optimistic setUser patch on POST 200,
+        not /me refetch. Phase 2 onboardingService flips the flag only after
+        enqueueInitialIngest succeeds, so a 200 is a contractual guarantee it's
+        already true server-side. Mirror, don't re-confirm.
+
+D-P6-2: Onboarding step transitions are per-page reactive <Navigate> (D-P5-2
+        preserved). Handle page keys on onboardingCompleted; ingesting page keys
+        on ingestStatus (three-flags rule, 03 §1/§2). /onboarding/* stays auth-only
+        under ProtectedRoute; RootRedirect unchanged.
+
+D-P6-3: Onboarding submit is a page-level service call + cross-store update (RHF
+        isSubmitting drives button, RHF root owns errors — Piece 5 pattern), not a
+        store action or mutation. No natural single-store home; inventing one is
+        over-engineering.
+
+D-P6-4: useIngestStatus is the single poll (['ingest','status']); isIngestActive
+        gates enablement; terminal status flips it false to stop app-wide; ingesting
+        page re-arms on mount for refresh-safety. Known gap: mid-ingest reload onto
+        dashboard loses the banner (isIngestActive is client-session). v1.5 fix.
+
+D-P6-5: IngestProgressPage renders an explicit isError branch. A persistently
+        failing poll previously rendered as infinite LoadingState (observed live:
+        server ReferenceError → 500 → React Query retries → error state, data
+        forever undefined). Loading ≠ error; polled pages must distinguish them.
+
+D-P6-6: HandleEntryPage surfaces server error messages for 409/422 instead of a
+        generic catch-all. Observed live: handle-uniqueness 409 (E11000 → D-P5-4)
+        rendered as "check and try again," masking the real cause. Expected
+        operational errors deserve their real message; generic text is for
+        genuinely unexpected failures.
+
+Editor auto-import across the monorepo seam: VS Code resolves against hoisted root node_modules, so a backend file can silently import a frontend-only package (import { use } from 'react' in authService.js). Green locally, dead on Render. Detection: grep -rn "from 'react'" server/ --exclude-dir=node_modules before deploy; prevention: eye the auto-added import block whenever autocomplete fires in server/.
