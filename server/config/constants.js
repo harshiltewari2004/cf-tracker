@@ -1,7 +1,7 @@
 export const BCRYPT_COST_FACTOR = 12;
-export const AUTH_COOKIE_NAME = 'token';
+export const AUTH_COOKIE_NAME = "token";
 export const AUTH_COOKIE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-export const RATE_LIMIT_WINDOW_MS = 15*60*1000;
+export const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 export const AUTH_RATE_LIMIT_MAX = 15;
 export const API_RATE_LIMIT_MAX = 100;
 export const INGEST_PAGE_SIZE = 500;
@@ -9,51 +9,57 @@ export const MONGO_DUPLICATE_KEY_CODE = 11000;
 export const MIN_PROBLEM_RATING = 800;
 export const MAX_PROBLEM_RATING = 3500;
 export const BUCKET_WIDTH = 200;
-export const STRETCH_ZONE_SPAN = 200; 
-export const INGEST_SKIP_GUARD_MIN_SUBMISSIONS=20;
-export const INGEST_SKIP_GUARD_MAX_MISS_RATIO=0.5;
-export const INGEST_QUEUE_NAME = 'ingest';
-export const INGEST_JOB_INITIAL = 'initial';
-export const INGEST_JOB_DAILY_REFRESH = 'daily_refresh';
+export const STRETCH_ZONE_SPAN = 200;
+export const INGEST_SKIP_GUARD_MIN_SUBMISSIONS = 20;
+export const INGEST_SKIP_GUARD_MAX_MISS_RATIO = 0.5;
+export const INGEST_QUEUE_NAME = "ingest";
+export const INGEST_JOB_INITIAL = "initial";
+export const INGEST_JOB_DAILY_REFRESH = "daily_refresh";
 export const INGEST_JOB_ATTEMPTS = 5; // matches the queue's attempts (04_architecture.md §5)
 export const INGEST_WORKER_CONCURRENCY = 5;
 export const INGEST_BACKOFF_DELAY_MS = 5000;
-export const INGEST_KEEP_COMPLETED=100;
-export const INGEST_KEEP_FAILED=500;
+export const INGEST_KEEP_COMPLETED = 100;
+export const INGEST_KEEP_FAILED = 500;
 export const GAP_BETA = 0.4;
-export const RELIABLE_A_MINUTES=15;
-export const RELIABLE_B_MINUTES=40;
-export const RELIABILITY_WINDOW=6;
-export const RELIABILITY_TARGET=4;
-export const DAILY_PLAN_SIZE=3;
-export const COLD_START_TAG_SMOOTHING=1;
-export const KEY_SEP = '|';
-export const DAILY_REFRESH_CRON = '0 2 * * *';
-export const CRON_TIMEZONE = 'Etc/UTC';
-export const BENCHMARK_REFRESH_CRON = '0 3 * * 0';
-export const CONTESTS_DEFAULT_LIMIT=20;
+export const RELIABLE_A_MINUTES = 15;
+export const RELIABLE_B_MINUTES = 40;
+export const RELIABILITY_WINDOW = 6;
+export const RELIABILITY_TARGET = 4;
+export const DAILY_PLAN_SIZE = 3;
+export const COLD_START_TAG_SMOOTHING = 1;
+export const KEY_SEP = "|";
+export const DAILY_REFRESH_CRON = "0 2 * * *";
+export const CRON_TIMEZONE = "Etc/UTC";
+export const BENCHMARK_REFRESH_CRON = "0 3 * * 0";
+export const CONTESTS_DEFAULT_LIMIT = 20;
 
 export const PLAN_TYPE = {
-  COLD_START: 'cold_start',
-  GAP_DRIVEN: 'gap_driven',
+  COLD_START: "cold_start",
+  GAP_DRIVEN: "gap_driven",
 };
 
 export const BUCKET_RANGES = [];
-for (let low = MIN_PROBLEM_RATING; low < MAX_PROBLEM_RATING; low += BUCKET_WIDTH) {
-  BUCKET_RANGES.push({ low, high: low + BUCKET_WIDTH, label: `${low}-${low + BUCKET_WIDTH}` });
+for (
+  let low = MIN_PROBLEM_RATING;
+  low < MAX_PROBLEM_RATING;
+  low += BUCKET_WIDTH
+) {
+  BUCKET_RANGES.push({
+    low,
+    high: low + BUCKET_WIDTH,
+    label: `${low}-${low + BUCKET_WIDTH}`,
+  });
 }
 
-
-
 export const CF_HANDLE = {
-  MIN_LENGTH: 3,                    
+  MIN_LENGTH: 3,
   MAX_LENGTH: 24,
-  REGEX: /^[a-zA-Z0-9_]+$/,         
+  REGEX: /^[a-zA-Z0-9_]+$/,
 };
 
-export const POLL_RATE_LIMIT={
-  WINDOW_MS:15*60*1000,
-  MAX:200
+export const POLL_RATE_LIMIT = {
+  WINDOW_MS: 15 * 60 * 1000,
+  MAX: 200,
 };
 
 export const COHORT = {
@@ -63,20 +69,35 @@ export const COHORT = {
   TARGET_N: 20,
   FLOOR_N: 15,
   FALLBACK_TIERS: [
-    { country: 'India', minRating: 1300, maxRating: 1500, fallbackUsed: null },
-    { country: 'India', minRating: 1300, maxRating: 1700, fallbackUsed: '1300-1700_IN' },
-    { country: null, minRating: 1300, maxRating: 1500, fallbackUsed: '1300-1500_global' },
-    { country: null, minRating: 1300, maxRating: 1700, fallbackUsed: '1300-1700_global' },
+    { country: "India", minRating: 1300, maxRating: 1500, fallbackUsed: null },
+    {
+      country: "India",
+      minRating: 1300,
+      maxRating: 1700,
+      fallbackUsed: "1300-1700_IN",
+    },
+    {
+      country: null,
+      minRating: 1300,
+      maxRating: 1500,
+      fallbackUsed: "1300-1500_global",
+    },
+    {
+      country: null,
+      minRating: 1300,
+      maxRating: 1700,
+      fallbackUsed: "1300-1700_global",
+    },
   ],
 };
-export const UPSOLVE_SCHEDULE_DELAY_MS = 24 * 60 * 60 * 1000; 
+export const UPSOLVE_SCHEDULE_DELAY_MS = 24 * 60 * 60 * 1000;
 
 export const DASHBOARD_RECENT_CONTESTS_LIMIT = 3;
 export const DASHBOARD_TOP_GAPS_LIMIT = 3;
 
 export const PASSWORD = {
   MIN_LENGTH: 8,
-  MAX_LENGTH: 72, 
+  MAX_LENGTH: 72,
 };
 
 export const USER_NAME = {

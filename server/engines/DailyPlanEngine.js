@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 import CFProfile from "../models/CFProfile.js";
 import Problem from "../models/Problem.js";
 import TopicBucketScore from "../models/TopicBucketScore.js";
@@ -8,15 +8,14 @@ import {
 } from "../config/constants.js";
 import { getStretchZoneBuckets } from "../utils/bucketUtils.js";
 import { AppError } from "../utils/errors.js";
-import Submission from '../models/Submission.js';
+import Submission from "../models/Submission.js";
 
-import { DAILY_PLAN_SIZE} from "../config/constants.js";
+import { DAILY_PLAN_SIZE } from "../config/constants.js";
 import { PLAN_TYPE } from "../config/constants.js";
-import UpSolveQueue from '../models/UpsolveQueue.js';
-import {getDateOnly} from '../utils/dateUtils.js';
-import DailyPlan from '../models/DailyPlan.js';
-import User from '../models/User.js';
-
+import UpSolveQueue from "../models/UpsolveQueue.js";
+import { getDateOnly } from "../utils/dateUtils.js";
+import DailyPlan from "../models/DailyPlan.js";
+import User from "../models/User.js";
 
 export const getColdStartPlan = async (userId) => {
   const profile = await CFProfile.findOne({ user: userId })
@@ -65,168 +64,177 @@ const rankWeakTags = async (userId, stretchBuckets) => {
     .map((entry) => entry.tag);
 };
 
-const selectColdStartProblems = async (userId, rankedTags, {low,high}) => {
-  const seenDocs = await Submission.find({user:userId})
-    .select('problem')
+const selectColdStartProblems = async (userId, rankedTags, { low, high }) => {
+  const seenDocs = await Submission.find({ user: userId })
+    .select("problem")
     .lean();
-  
-  const seendIds = new Set(seenDocs.map((s)=> String(s.problem)));
 
-  const selected=[];
+  const seendIds = new Set(seenDocs.map((s) => String(s.problem)));
+
+  const selected = [];
   const selectedIds = new Set();
   const tagPools = new Map();
 
-  const loadPool = async(tag)=>{
-    if(tagPools.has(tag))return tagPools.get(tag);
+  const loadPool = async (tag) => {
+    if (tagPools.has(tag)) return tagPools.get(tag);
 
     const problems = await Problem.find({
-      tags:tag,
-      rating:{$gte:low,$lte:high},
+      tags: tag,
+      rating: { $gte: low, $lte: high },
     })
-    .select('_id rating tags name cfContestId cfIndex url')
-    .sort({rating:1})
-    .lean();
+      .select("_id rating tags name cfContestId cfIndex url")
+      .sort({ rating: 1 })
+      .lean();
 
     const pool = problems.filter(
-      (p)=>!seendIds.has(String(p._id))&&!selectedIds.has(String(p._id))
+      (p) => !seendIds.has(String(p._id)) && !selectedIds.has(String(p._id)),
     );
-    tagPools.set(tag,pool);
+    tagPools.set(tag, pool);
     return pool;
   };
 
-  const take = (pool)=>{
+  const take = (pool) => {
     const problem = pool.shift();
     selected.push(problem);
     selectedIds.add(String(problem._id));
   };
 
-  for(const tag of rankedTags){
-    if(selected.length===DAILY_PLAN_SIZE)break;
+  for (const tag of rankedTags) {
+    if (selected.length === DAILY_PLAN_SIZE) break;
     const pool = await loadPool(tag);
 
-    while(pool.length&&selectedIds.has(String(pool[0]._id)))pool.shift();
-    if(pool.length==0)continue;
+    while (pool.length && selectedIds.has(String(pool[0]._id))) pool.shift();
+    if (pool.length == 0) continue;
     take(pool);
   }
-  if(selected.length<DAILY_PLAN_SIZE){
-    for(const tag of rankedTags){
-      let pool = tagPools.get(tag)??[];
-      while(pool.length&&selected.length<DAILY_PLAN_SIZE){
-        while(pool.length&&selectedIds.has(String(pool[0]._id)))pool.shift();
-        if(pool.length==0)break;
+  if (selected.length < DAILY_PLAN_SIZE) {
+    for (const tag of rankedTags) {
+      let pool = tagPools.get(tag) ?? [];
+      while (pool.length && selected.length < DAILY_PLAN_SIZE) {
+        while (pool.length && selectedIds.has(String(pool[0]._id)))
+          pool.shift();
+        if (pool.length == 0) break;
         take(pool);
       }
-      if(selected.length===DAILY_PLAN_SIZE)break;
+      if (selected.length === DAILY_PLAN_SIZE) break;
     }
   }
-  return selected.map((problem)=>({
-    problem:problem._id,
-    type:'gap',
-    status:'pending'
+  return selected.map((problem) => ({
+    problem: problem._id,
+    type: "gap",
+    status: "pending",
   }));
 };
 
-const selectGapProblems = async(userId,{low,high},count,seendIds)=>{
-  const inZoneBuckets = getStretchZoneBuckets(low,high);
+const selectGapProblems = async (userId, { low, high }, count, seendIds) => {
+  const inZoneBuckets = getStretchZoneBuckets(low, high);
 
-  const rows = await TopicBucketScore.find({user:userId})
-  .select('topic bucket finalGap')
-  .sort({finalGap:-1})
-  .lean();
-
-  const selected=[];
-  const selectedIds=new Set();
-
-  for(const row of rows){
-    if(selected.length===count)break;
-
-    const candidates = await Problem.find({
-      tags:row.topic,
-      ratingBucket:{$in:inZoneBuckets},
-      rating:{$gte:low,$lte:high},
-    })
-    .select('_id rating tags name cfContestId cfIndex url')
-    .sort({rating:1})
+  const rows = await TopicBucketScore.find({ user: userId })
+    .select("topic bucket finalGap")
+    .sort({ finalGap: -1 })
     .lean();
 
-    const pick = candidates.find(
-      (p)=>!seendIds.has(String(p._id))&&!selectedIds.has(String(p._id))
-    );
-    if(!pick)continue;
+  const selected = [];
+  const selectedIds = new Set();
 
-    selected.push({problem:pick._id,type:'gap',status:'pending'});
+  for (const row of rows) {
+    if (selected.length === count) break;
+
+    const candidates = await Problem.find({
+      tags: row.topic,
+      ratingBucket: { $in: inZoneBuckets },
+      rating: { $gte: low, $lte: high },
+    })
+      .select("_id rating tags name cfContestId cfIndex url")
+      .sort({ rating: 1 })
+      .lean();
+
+    const pick = candidates.find(
+      (p) => !seendIds.has(String(p._id)) && !selectedIds.has(String(p._id)),
+    );
+    if (!pick) continue;
+
+    selected.push({ problem: pick._id, type: "gap", status: "pending" });
 
     selectedIds.add(String(pick._id));
   }
   return selected;
 };
 
-const selectUpsolveProblems = async(userId,date)=>{
+const selectUpsolveProblems = async (userId, date) => {
   const today = getDateOnly(date);
 
   const entry = await UpSolveQueue.findOne({
-    user:userId,
-    status:'pending',
-    scheduledFor:{$lte:today},
-
+    user: userId,
+    status: "pending",
+    scheduledFor: { $lte: today },
   })
-  .sort({addedAt:1})
-  .select('problem')
-  .lean();
-  
-  if(!entry) return[];
+    .sort({ addedAt: 1 })
+    .select("problem")
+    .lean();
 
-  return [{problem:entry.problem,type:'upsolve',status:'pending'}];
+  if (!entry) return [];
+
+  return [{ problem: entry.problem, type: "upsolve", status: "pending" }];
 };
 
-const gapDrivenPlan = async(userId,date)=>{
-  const profile = await CFProfile.findOne({user:userId})
-  .select('currentRating')
-  .lean();
+const gapDrivenPlan = async (userId, date) => {
+  const profile = await CFProfile.findOne({ user: userId })
+    .select("currentRating")
+    .lean();
 
-  if(!profile||profile.currentRating==null){
-    throw new AppError('Cannot build gap-driven plan:no currentRating',422);
+  if (!profile || profile.currentRating == null) {
+    throw new AppError("Cannot build gap-driven plan:no currentRating", 422);
   }
-  const zone ={
-    low:profile.currentRating,
-    high:profile.currentRating+STRETCH_ZONE_SPAN
+  const zone = {
+    low: profile.currentRating,
+    high: profile.currentRating + STRETCH_ZONE_SPAN,
   };
 
-  const seenDocs = await Submission.find({user:userId}).select('problem').lean();
-  const seenIds  = await new Set(seenDocs.map((s)=>String(s.problem)));
+  const seenDocs = await Submission.find({ user: userId })
+    .select("problem")
+    .lean();
+  const seenIds = await new Set(seenDocs.map((s) => String(s.problem)));
 
-  const upSolveProblems = await selectUpsolveProblems(userId,date);
-  const gapCount = DAILY_PLAN_SIZE-upSolveProblems.length;
-  const gapProblems = await selectGapProblems(userId,zone,gapCount,seenIds);
+  const upSolveProblems = await selectUpsolveProblems(userId, date);
+  const gapCount = DAILY_PLAN_SIZE - upSolveProblems.length;
+  const gapProblems = await selectGapProblems(userId, zone, gapCount, seenIds);
 
-  return[...gapProblems,...upSolveProblems];
+  return [...gapProblems, ...upSolveProblems];
 };
 
-export const generatePlan = async(userId,date)=>{
+export const generatePlan = async (userId, date) => {
   const planDate = getDateOnly(date);
-  const user = await User.findById(userId).select('coldStartComplete').lean();
+  const user = await User.findById(userId).select("coldStartComplete").lean();
 
-  if(!user)throw new AppError('User not found',404);
+  if (!user) throw new AppError("User not found", 404);
 
   const isColdStart = !user.coldStartComplete;
   const problems = isColdStart
-  ?await getColdStartPlan(userId)
-  :await gapDrivenPlan(userId,planDate);
+    ? await getColdStartPlan(userId)
+    : await gapDrivenPlan(userId, planDate);
 
-  const planType = isColdStart?PLAN_TYPE.COLD_START:PLAN_TYPE.GAP_DRIVEN;
+  const planType = isColdStart ? PLAN_TYPE.COLD_START : PLAN_TYPE.GAP_DRIVEN;
 
   const plan = await DailyPlan.findOneAndUpdate(
-    {user:userId,date:planDate},
-    {$setOnInsert:{user:userId,date:planDate,planType,problems,completed:false}},
-    {upsert:true,new:true,setDefaultsOnInsert:true}
+    { user: userId, date: planDate },
+    {
+      $setOnInsert: {
+        user: userId,
+        date: planDate,
+        planType,
+        problems,
+        completed: false,
+      },
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true },
   );
   return plan;
 };
 
-export const markSolved = async(userId,problemSubId)=>{
-
-  if(!mongoose.isValidObjectId(problemSubId)){
-    throw new AppError('Invalid problem id',400);
+export const markSolved = async (userId, problemSubId) => {
+  if (!mongoose.isValidObjectId(problemSubId)) {
+    throw new AppError("Invalid problem id", 400);
   }
 
   const subId = new mongoose.Types.ObjectId(problemSubId);
@@ -235,85 +243,87 @@ export const markSolved = async(userId,problemSubId)=>{
   const now = new Date();
 
   const plan = await DailyPlan.findOneAndUpdate(
-    {user:userId,date:planDate,'problems._id':problemSubId},
-    {$set:{'problems.$.status':'solved','problems.$.solvedAt':now}},
-    {new:true}
+    { user: userId, date: planDate, "problems._id": problemSubId },
+    { $set: { "problems.$.status": "solved", "problems.$.solvedAt": now } },
+    { new: true },
   );
-  if(!plan){
-  throw new AppError('Plan problem not found',404);
-}
+  if (!plan) {
+    throw new AppError("Plan problem not found", 404);
+  }
 
-const allSolved = plan.problems.every((p)=>p.status==='solved');
+  const allSolved = plan.problems.every((p) => p.status === "solved");
 
-if(allSolved&&!plan.completed){
-  plan.completed = true;
-  await plan.save();
-}
-return plan;
+  if (allSolved && !plan.completed) {
+    plan.completed = true;
+    await plan.save();
+  }
+  return plan;
 };
 
-export const replaceProblem = async(userId,problemSubId)=>{
-  if(!mongoose.isValidObjectId(problemSubId)){
-    throw new AppError('Invalid problem id',400);
+export const replaceProblem = async (userId, problemSubId) => {
+  if (!mongoose.isValidObjectId(problemSubId)) {
+    throw new AppError("Invalid problem id", 400);
   }
   const subId = new mongoose.Types.ObjectId(problemSubId);
 
   const planDate = getDateOnly(new Date());
 
-  const plan = await DailyPlan.findOne({user:userId,date:planDate}).lean();
+  const plan = await DailyPlan.findOne({ user: userId, date: planDate }).lean();
 
-  if(!plan){
-    throw new AppError('Plan problem not found',404);
+  if (!plan) {
+    throw new AppError("Plan problem not found", 404);
   }
-  const target = plan.problems.find((p)=>String(p._id)===String(subId));
-  if(!target){
-    throw new AppError('Plan problem not found',404);
-  }
-
-  const profile = await CFProfile.findOne({user:userId}).lean();
-  if(!profile||profile.currentRating==null){
-    throw new AppError('Cannot replace problem no current rating',422);
+  const target = plan.problems.find((p) => String(p._id) === String(subId));
+  if (!target) {
+    throw new AppError("Plan problem not found", 404);
   }
 
-  const zone ={
-    low:profile.currentRating,
-    high:profile.currentRating+STRETCH_ZONE_SPAN,
+  const profile = await CFProfile.findOne({ user: userId }).lean();
+  if (!profile || profile.currentRating == null) {
+    throw new AppError("Cannot replace problem no current rating", 422);
+  }
+
+  const zone = {
+    low: profile.currentRating,
+    high: profile.currentRating + STRETCH_ZONE_SPAN,
   };
 
-  const seenDocs = await Submission.find({user:userId}).select('problem').lean();
-  const exclusion = new Set(seenDocs.map((s)=>String(s.problem)));
+  const seenDocs = await Submission.find({ user: userId })
+    .select("problem")
+    .lean();
+  const exclusion = new Set(seenDocs.map((s) => String(s.problem)));
 
-  for(const p of plan.problems){
+  for (const p of plan.problems) {
     exclusion.add(String(p.problem));
   }
-  const picks = await selectGapProblems(userId,zone,1,exclusion);
-  if(picks.length===0){
-    throw new AppError('No replacement problem available',422);
+  const picks = await selectGapProblems(userId, zone, 1, exclusion);
+  if (picks.length === 0) {
+    throw new AppError("No replacement problem available", 422);
   }
   const replacement = picks[0].problem;
 
   const now = new Date();
 
   const updated = await DailyPlan.findOneAndUpdate(
-    {user:userId,date:planDate,'problems._id':subId},
+    { user: userId, date: planDate, "problems._id": subId },
     {
-      $set:{
-        'problems.$.problem':replacement,
-        'problems.$.status':'pending',
-        completed:false,
+      $set: {
+        "problems.$.problem": replacement,
+        "problems.$.status": "pending",
+        completed: false,
       },
-      $push:{
-        replacedProblems:{
-          original:target.problem,
+      $push: {
+        replacedProblems: {
+          original: target.problem,
           replacement,
-          replacedAt:now,
+          replacedAt: now,
         },
       },
     },
-    {new:true }
+    { new: true },
   );
-  if(!updated){
-    throw new AppError('Plan problem not found',404);
+  if (!updated) {
+    throw new AppError("Plan problem not found", 404);
   }
   return updated;
 };

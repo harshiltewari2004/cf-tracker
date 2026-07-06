@@ -4,7 +4,7 @@ import { z } from "zod";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { validate } from "../middleware/validator.js";
 import { register, login, logout, me } from "../controllers/authController.js";
-import { authLimiter } from '../middleware/rateLimiter.js';
+import { authLimiter } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
 
@@ -19,9 +19,9 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-router.post('/register',authLimiter, validate(registerSchema), register);
-router.post('/login',authLimiter, validate(loginSchema), login);
-router.post('/logout', authMiddleware, logout);
-router.get('/me', authMiddleware, me);
+router.post("/register", authLimiter, validate(registerSchema), register);
+router.post("/login", authLimiter, validate(loginSchema), login);
+router.post("/logout", authMiddleware, logout);
+router.get("/me", authMiddleware, me);
 
 export default router;

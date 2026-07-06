@@ -1,5 +1,5 @@
-import { useIngestStatus } from '@/hooks/useIngestStatus';
-import { useIngestStore } from '@/stores/ingestStore';
+import { useIngestStatus } from "@/hooks/useIngestStatus";
+import { useIngestStore } from "@/stores/ingestStore";
 
 export const IngestStatusBanner = () => {
   const isIngestActive = useIngestStore((s) => s.isIngestActive);
@@ -7,7 +7,7 @@ export const IngestStatusBanner = () => {
 
   // Self-clears: useIngestStatus flips isIngestActive false on terminal status.
   if (!isIngestActive || !data) return null;
-  if (data.status !== 'pending' && data.status !== 'processing') return null;
+  if (data.status !== "pending" && data.status !== "processing") return null;
 
   return (
     <div className="text-sm text-amber-700">

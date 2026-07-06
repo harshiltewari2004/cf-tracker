@@ -1,7 +1,7 @@
-import { Outlet } from 'react-router-dom';
-import { Toaster } from '@/components/ui/sonner';
-import { Sidebar } from './Sidebar';
-import { Topbar } from './Topbar';
+import { Outlet } from "react-router-dom";
+import { Toaster } from "@/components/ui/sonner";
+import { Sidebar } from "./Sidebar";
+import { Topbar } from "./Topbar";
 
 export const AppLayout = () => (
   <div className="flex min-h-screen">

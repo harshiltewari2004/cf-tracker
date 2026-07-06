@@ -10,7 +10,7 @@ import VirtualContest from "../models/VirtualContest.js";
 import { AppError } from "../utils/errors.js";
 import { validateHandleExists } from "../ingest/CFApiClient.js";
 import { enqueueInitialIngest } from "../queues/ingestQueue.js";
-import User from '../models/User.js';
+import User from "../models/User.js";
 import mongoose from "mongoose";
 
 export const updateHandle = async (userId, newHandle) => {
@@ -41,21 +41,20 @@ export const updateHandle = async (userId, newHandle) => {
   await ValidationBaseline.deleteMany({ user: userId });
   await VirtualContest.deleteMany({ user: userId });
 
-
   profile.handle = newHandle;
   profile.lastIngestedSubmissionId = null;
-  profile.ingestStatus = 'pending';
+  profile.ingestStatus = "pending";
   await profile.save();
-  
-  await User.findByIdAndUpdate(userId,{coldStartComplete:false});
-  await enqueueInitialIngest({userId});
+
+  await User.findByIdAndUpdate(userId, { coldStartComplete: false });
+  await enqueueInitialIngest({ userId });
   return profile;
 };
 
-export const deleteAccount = async(userId)=>{
+export const deleteAccount = async (userId) => {
   const session = await mongoose.startSession();
-  try{
-    await session.withTransaction(async()=>{
+  try {
+    await session.withTransaction(async () => {
       await Submission.deleteMany({ user: userId }, { session });
       await TopicBucketScore.deleteMany({ user: userId }, { session });
       await ContestResult.deleteMany({ user: userId }, { session });
@@ -67,8 +66,7 @@ export const deleteAccount = async(userId)=>{
       await CFProfile.deleteOne({ user: userId }, { session });
       await User.deleteOne({ _id: userId }, { session });
     });
-  }
-  finally{
+  } finally {
     await session.endSession();
   }
 };

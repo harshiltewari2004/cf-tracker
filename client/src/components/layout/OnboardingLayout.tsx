@@ -1,6 +1,6 @@
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation } from "react-router-dom";
 
-const STEPS = ['/onboarding/handle', '/onboarding/ingesting'];
+const STEPS = ["/onboarding/handle", "/onboarding/ingesting"];
 
 export const OnboardingLayout = () => {
   const { pathname } = useLocation();

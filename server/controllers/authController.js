@@ -51,7 +51,7 @@ export const login = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-     data: authService.toAuthUser(user),
+      data: authService.toAuthUser(user),
     });
   } catch (err) {
     next(err);
@@ -73,16 +73,16 @@ export const logout = async (req, res, next) => {
 
 export const me = async (req, res, next) => {
   try {
-    const user = await User.findById(req.userId).select("name email onboardingCompleted").lean();
+    const user = await User.findById(req.userId)
+      .select("name email onboardingCompleted")
+      .lean();
     if (!user) {
       throw new AppError("User not found", 404);
     }
-    res
-      .status(200)
-      .json({
-        success: true,
-        data: authService.toAuthUser(user),
-      });
+    res.status(200).json({
+      success: true,
+      data: authService.toAuthUser(user),
+    });
   } catch (err) {
     next(err);
   }

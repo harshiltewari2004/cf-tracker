@@ -5,8 +5,8 @@ import { daysBetween } from "../utils/dateUtils.js";
 import { getTopicBucketRows } from "../utils/bucketUtils.js";
 import { median } from "../utils/mathUtils.js";
 
-import BenchmarkCohort from '../models/BenchmarkCohort.js';
-import BenchmarkTargetCount from '../models/BenchmarkTargetCount.js';
+import BenchmarkCohort from "../models/BenchmarkCohort.js";
+import BenchmarkTargetCount from "../models/BenchmarkTargetCount.js";
 
 const dedupSolved = (submissions) => {
   const seen = new Map();
@@ -64,10 +64,13 @@ export const fetchCohort = async (filters) => {
         bucketCounts,
       });
     } catch (err) {
-      logger.warn({ handle: candidate.handle, err: err.message }, 'skipping candidate — CF call failed');
+      logger.warn(
+        { handle: candidate.handle, err: err.message },
+        "skipping candidate — CF call failed",
+      );
     }
   }
-  logger.info({ filters, N: users.length }, 'cohort tier fetched');
+  logger.info({ filters, N: users.length }, "cohort tier fetched");
   return { filters, users, N: users.length };
 };
 
@@ -104,7 +107,10 @@ const selectCohort = async () => {
   return null;
 };
 
-export const refresh = async ({ injectedSelection = null, onSelection = null } = {}) => {
+export const refresh = async ({
+  injectedSelection = null,
+  onSelection = null,
+} = {}) => {
   const selected = injectedSelection ?? (await selectCohort());
   if (!selected) return null;
   if (onSelection) onSelection(selected);
@@ -157,4 +163,3 @@ export const refresh = async ({ injectedSelection = null, onSelection = null } =
   );
   return { version: newVersion, N: cohort.N, fallbackUsed: tier.fallbackUsed };
 };
- 

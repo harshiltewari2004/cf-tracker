@@ -3,15 +3,15 @@ export class AppError extends Error {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = true;
-   if(cfComment)this.cfComment = cfComment;
+    if (cfComment) this.cfComment = cfComment;
     Error.captureStackTrace(this, this.constructor);
   }
 }
 
-export class DegradedIngestError extends AppError{
-  constructor(message,details){
-    super(message,422);
-    this.name = 'DegradedIngestError';
+export class DegradedIngestError extends AppError {
+  constructor(message, details) {
+    super(message, 422);
+    this.name = "DegradedIngestError";
     this.details = details;
   }
 }

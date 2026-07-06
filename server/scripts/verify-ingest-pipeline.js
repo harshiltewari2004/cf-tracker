@@ -13,20 +13,20 @@
  * Usage:  node scripts/verify-ingest-pipeline.js <yourCodeforcesHandle>
  */
 
-import '../config/env.js';
+import "../config/env.js";
 
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-import logger from '../config/logger.js';
-import { connectDB } from '../config/db.js';
-import { connection } from '../config/redis.js';
-import ingestQueue, { enqueueInitialIngest } from '../queues/ingestQueue.js';
-import User from '../models/User.js';
-import CFProfile from '../models/CFProfile.js';
-import Submission from '../models/Submission.js';
-import IngestJob from '../models/IngestJob.js';
+import logger from "../config/logger.js";
+import { connectDB } from "../config/db.js";
+import { connection } from "../config/redis.js";
+import ingestQueue, { enqueueInitialIngest } from "../queues/ingestQueue.js";
+import User from "../models/User.js";
+import CFProfile from "../models/CFProfile.js";
+import Submission from "../models/Submission.js";
+import IngestJob from "../models/IngestJob.js";
 
-const TEST_EMAIL = 'ingest-verify@cf-tracker.local';
+const TEST_EMAIL = "ingest-verify@cf-tracker.local";
 const POLL_INTERVAL_MS = 3000; // matches onboarding poll cadence, 05 §3.7
 const POLL_TIMEOUT_MS = 8 * 60 * 1000; // covers a 2–5 min active-account ingest with margin
 
@@ -34,7 +34,9 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const handle = process.argv[2];
 if (!handle) {
-  logger.error('Usage: node scripts/verify-ingest-pipeline.js <codeforcesHandle>');
+  logger.error(
+    "Usage: node scripts/verify-ingest-pipeline.js <codeforcesHandle>",
+  );
   process.exit(1);
 }
 
@@ -51,20 +53,20 @@ const run = async () => {
     userId = profile.user;
     await CFProfile.updateOne(
       { _id: profile._id },
-      { $set: { ingestStatus: 'pending', lastIngestedSubmissionId: null } }
+      { $set: { ingestStatus: "pending", lastIngestedSubmissionId: null } },
     );
   } else {
     const user = await User.create({
-      name: 'Ingest Verify',
+      name: "Ingest Verify",
       email: TEST_EMAIL,
-      passwordHash: 'not-a-real-hash', // never logs in; placeholder only
+      passwordHash: "not-a-real-hash", // never logs in; placeholder only
       coldStartComplete: false,
     });
     userId = user._id;
     await CFProfile.create({
       user: userId,
       handle,
-      ingestStatus: 'pending',
+      ingestStatus: "pending",
       lastIngestedSubmissionId: null,
     });
   }
@@ -72,7 +74,10 @@ const run = async () => {
   // Clear prior submissions so the count assertion is meaningful on re-runs.
   await Submission.deleteMany({ user: userId });
 
-  logger.info({ userId: userId.toString(), handle }, 'seed complete, enqueuing ingest');
+  logger.info(
+    { userId: userId.toString(), handle },
+    "seed complete, enqueuing ingest",
+  );
 
   const ingestJob = await enqueueInitialIngest({ userId });
   const ingestJobId = ingestJob._id.toString();
@@ -83,18 +88,21 @@ const run = async () => {
   while (Date.now() < deadline) {
     await sleep(POLL_INTERVAL_MS);
     job = await IngestJob.findById(ingestJobId).lean();
-    logger.info({ status: job?.status }, 'polling ingest job');
-    if (job?.status === 'complete' || job?.status === 'failed') break;
+    logger.info({ status: job?.status }, "polling ingest job");
+    if (job?.status === "complete" || job?.status === "failed") break;
   }
 
   profile = await CFProfile.findOne({ user: userId }).lean();
   const submissionCount = await Submission.countDocuments({ user: userId });
 
   const checks = [
-    ['IngestJob.status === complete', job?.status === 'complete'],
-    ['CFProfile.ingestStatus === complete', profile?.ingestStatus === 'complete'],
-    ['Submission count > 0', submissionCount > 0],
-    ['handle updated', profile?.handle === handle],
+    ["IngestJob.status === complete", job?.status === "complete"],
+    [
+      "CFProfile.ingestStatus === complete",
+      profile?.ingestStatus === "complete",
+    ],
+    ["Submission count > 0", submissionCount > 0],
+    ["handle updated", profile?.handle === handle],
   ];
 
   let passed = true;
@@ -104,8 +112,13 @@ const run = async () => {
   }
 
   logger.info(
-    { passed, submissionCount, jobStatus: job?.status, ingestStatus: profile?.ingestStatus },
-    passed ? 'PIPELINE VERIFY PASSED' : 'PIPELINE VERIFY FAILED'
+    {
+      passed,
+      submissionCount,
+      jobStatus: job?.status,
+      ingestStatus: profile?.ingestStatus,
+    },
+    passed ? "PIPELINE VERIFY PASSED" : "PIPELINE VERIFY FAILED",
   );
 
   return passed;
@@ -119,7 +132,7 @@ run()
     process.exit(passed ? 0 : 1);
   })
   .catch(async (err) => {
-    logger.error({ err }, 'pipeline verify crashed');
+    logger.error({ err }, "pipeline verify crashed");
     await ingestQueue.close();
     await connection.quit();
     await mongoose.disconnect();

@@ -1,5 +1,5 @@
-import { useAuthStore } from '@/stores/authStore';
-import { IngestStatusBanner } from '@/components/shared/IngestStatusBanner';
+import { useAuthStore } from "@/stores/authStore";
+import { IngestStatusBanner } from "@/components/shared/IngestStatusBanner";
 export const Topbar = () => {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);

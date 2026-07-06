@@ -7,4 +7,4 @@ export const median = (values) => {
     : sorted[mid];
 };
 
-export const clamp = (value,lo,hi)=>Math.min(Math.max(value,lo),hi);
+export const clamp = (value, lo, hi) => Math.min(Math.max(value, lo), hi);

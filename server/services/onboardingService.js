@@ -1,5 +1,5 @@
 import { AppError } from "../utils/errors.js";
-import  logger  from "../config/logger.js";
+import logger from "../config/logger.js";
 import User from "../models/User.js";
 import CFProfile from "../models/CFProfile.js";
 import IngestJob from "../models/IngestJob.js";
@@ -24,7 +24,7 @@ export const submitHandle = async (userId, handle) => {
     ingestStatus: "pending",
   });
 
-  await enqueueInitialIngest({userId});
+  await enqueueInitialIngest({ userId });
 
   await User.findByIdAndUpdate(userId, {
     onboardingStep: 2,
@@ -38,16 +38,16 @@ export const submitHandle = async (userId, handle) => {
   return { ingestStatus: "pending" };
 };
 
-export const getOnboardingStatus = async(userId)=>{
+export const getOnboardingStatus = async (userId) => {
   const user = await User.findById(userId)
-  .select('onboardin step,onboarding completed')
-  .lean();
+    .select("onboardin step,onboarding completed")
+    .lean();
 
-  if(!user)throw new AppError('User not found',404);
+  if (!user) throw new AppError("User not found", 404);
 
-  return{
-    onboardingStep:user.onboardingStep,
-    onboardingCompleted:user.onboardingCompleted
+  return {
+    onboardingStep: user.onboardingStep,
+    onboardingCompleted: user.onboardingCompleted,
   };
 };
 
@@ -68,7 +68,7 @@ const resolveExistingProfile = async (userId, existing, handle) => {
     return { ingestStatus: existing.ingestStatus };
   }
 
-  await enqueueInitialIngest({userId});
+  await enqueueInitialIngest({ userId });
   await User.findByIdAndUpdate(userId, {
     onboardingStep: 2,
     onboardingCompleted: true,

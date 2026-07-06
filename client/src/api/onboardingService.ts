@@ -1,6 +1,6 @@
-import { apiClient } from './client';
+import { apiClient } from "./client";
 
-import type { IngestStatusValue } from '@/types/models';
+import type { IngestStatusValue } from "@/types/models";
 
 interface SubmitHandleResponse {
   ingestStatus: IngestStatusValue;
@@ -8,10 +8,10 @@ interface SubmitHandleResponse {
 
 export const onboardingService = {
   submitHandle: async (handle: string) => {
-    const res = await apiClient.post<{ success: boolean; data: SubmitHandleResponse }>(
-      '/api/onboarding/codeforces',
-      { handle },
-    );
+    const res = await apiClient.post<{
+      success: boolean;
+      data: SubmitHandleResponse;
+    }>("/api/onboarding/codeforces", { handle });
     return res.data.data;
   },
 };

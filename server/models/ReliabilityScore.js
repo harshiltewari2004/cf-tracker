@@ -1,8 +1,13 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const reliabilityScoreSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      unique: true,
+    },
     last6Contests: [
       {
         contestId: { type: Number, required: true },
@@ -22,8 +27,7 @@ const reliabilityScoreSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
-
-export default mongoose.model('ReliabilityScore', reliabilityScoreSchema);
+export default mongoose.model("ReliabilityScore", reliabilityScoreSchema);

@@ -1,18 +1,23 @@
-import logger from '../config/logger.js';
-import { AppError } from '../utils/errors.js';
-import { env } from '../config/env.js';
-import { success } from 'zod';
+import logger from "../config/logger.js";
+import { AppError } from "../utils/errors.js";
+import { env } from "../config/env.js";
+import { success } from "zod";
 
 export const errorHandler = (err, req, res, next) => {
-  
-    if(err.code===11000){
-      return res.status(409).json({success:false,message:'Email already registered'});
-    }
+  if (err.code === 11000) {
+    return res
+      .status(409)
+      .json({ success: false, message: "Email already registered" });
+  }
 
   if (err instanceof AppError && err.isOperational) {
     logger.warn(
-      { err: { message: err.message, statusCode: err.statusCode }, path: req.path, userId: req.userId },
-      'operational error'
+      {
+        err: { message: err.message, statusCode: err.statusCode },
+        path: req.path,
+        userId: req.userId,
+      },
+      "operational error",
     );
     return res.status(err.statusCode).json({
       success: false,
@@ -20,17 +25,13 @@ export const errorHandler = (err, req, res, next) => {
     });
   }
 
-
-  logger.error(
-    { err, path: req.path, userId: req.userId },
-    'unexpected error'
-  );
+  logger.error({ err, path: req.path, userId: req.userId }, "unexpected error");
 
   return res.status(500).json({
     success: false,
-    message: 'Internal server error',
- 
-    ...(env.NODE_ENV === 'development' && { stack: err.stack }),
+    message: "Internal server error",
+
+    ...(env.NODE_ENV === "development" && { stack: err.stack }),
   });
 };
 
