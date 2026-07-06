@@ -6,3 +6,9 @@ export interface User {
     onBoardingStep:number;
     coldStartComplete:boolean;
 };
+export type IngestStatusValue =
+  | 'not_started'
+  | 'pending'
+  | 'processing'
+  | 'complete'
+  | 'failed';

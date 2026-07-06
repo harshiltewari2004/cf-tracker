@@ -1,13 +1,11 @@
-import { create } from "zustand";
+import { create } from 'zustand';
 
-interface IngestState{
-    isIngestActive:boolean;
-    startIngest:()=>void;
-    endIngest:()=>void;
+interface IngestState {
+  isIngestActive: boolean;
+  setIngestActive: (active: boolean) => void;
 }
 
-export const useIngestStore = create<IngestState>((set)=>({
-    isIngestActive:false,
-    startIngest:()=>set({isIngestActive:true}),
-    endIngest:()=>({isIngestActive:false}),
+export const useIngestStore = create<IngestState>((set) => ({
+  isIngestActive: false,
+  setIngestActive: (active) => set({ isIngestActive: active }),
 }));
