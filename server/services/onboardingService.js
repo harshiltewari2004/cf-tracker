@@ -24,7 +24,7 @@ export const submitHandle = async (userId, handle) => {
     ingestStatus: "pending",
   });
 
-  await enqueueInitialIngest(userId);
+  await enqueueInitialIngest({userId});
 
   await User.findByIdAndUpdate(userId, {
     onboardingStep: 2,
@@ -68,7 +68,7 @@ const resolveExistingProfile = async (userId, existing, handle) => {
     return { ingestStatus: existing.ingestStatus };
   }
 
-  await enqueueInitialIngest(userId);
+  await enqueueInitialIngest({userId});
   await User.findByIdAndUpdate(userId, {
     onboardingStep: 2,
     onboardingCompleted: true,
