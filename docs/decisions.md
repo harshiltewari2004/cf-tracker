@@ -738,3 +738,81 @@ D-P6-6: HandleEntryPage surfaces server error messages for 409/422 instead of a
         genuinely unexpected failures.
 
 Editor auto-import across the monorepo seam: VS Code resolves against hoisted root node_modules, so a backend file can silently import a frontend-only package (import { use } from 'react' in authService.js). Green locally, dead on Render. Detection: grep -rn "from 'react'" server/ --exclude-dir=node_modules before deploy; prevention: eye the auto-added import block whenever autocomplete fires in server/.
+
+## Piece 7 — DashboardPage (Phase 5, first deliverable)
+
+### D-P7-1 — Four resource-keyed queries, not the /api/dashboard aggregate
+DashboardPage consumes four independent React Query queries — ['plan','today'],
+['reliability'], ['contests','recent'], ['weakness'] — per 05 §3.1–3.2, NOT the
+GET /api/dashboard aggregate from 04 §4.3.
+Rationale: one resource = one cache key shared across pages. ['plan','today'] is
+deduped between Dashboard and DailyPlanPage (05 §3.2 states this explicitly), and
+mutations invalidate one key surgically. The aggregate would denormalize the
+cache: plan data would exist under two keys, every mutation would need double
+invalidation, and forgetting one produces silent stale UI.
+/api/dashboard stays mounted for future non-caching consumers (mobile widget,
+CLI); no conflict between the two docs — 04 ships a capability, 05 specifies this
+client's consumption.
+
+### D-P7-2 — Populate-on-read in new services/planService.js
+Observed via pre-work capture: GET /api/plan/today returned problems[].problem as
+bare ObjectIds — unrenderable by 05 §3.1's DailyPlanWidget/ProblemCard. Fix:
+hydrate on read with .populate('problems.problem', 'name rating tags url
+cfContestId cfIndex') (projection per 08 §4).
+Location: new services/planService.js — the file 06 §2 already reserved. The
+Phase 3 controller→engine direct call was the deviation; a populate is a DB
+operation and 08 §4 bars those from controllers. DailyPlanEngine untouched
+(write paths keep storing bare refs).
+Mechanism: generatePlan returns a live Mongoose document (findOneAndUpdate with
+new: true, no .lean() — confirmed on screen), so document.populate() works with
+no extra query.
+
+### D-P7-3 — Recent contests A/B status via client-side join
+GET /api/contests carries no A/B data (lives in ContestProblemResult). Instead of
+a backend change, RecentContestsCard joins client-side against
+reliability.last6Contests (already fetched, already carries contestId/solvedA/
+solvedB) — matching contest.cfContestId (ContestResult, 03 §9) to c.contestId
+(ReliabilityScore entry, 03 §11). Shares the ['reliability'] cache key with
+ReliabilitySummary: zero extra requests.
+Edge: contests outside the last-6 window render A/B as "–" (unknown), not false.
+Verified live: contest 2228 (solvedA: false) rendered A ✗ while 2234/2231
+rendered A ✓.
+
+### D-P7-4 — Weakness query un-parameterized; dashboard slices client-side
+gapService.getWeakness fetches /api/weakness with no params. TopGapsCard sorts by
+finalGap desc and slices to DASHBOARD_TOP_GAPS_LIMIT client-side. One ['weakness']
+cache key serves both Dashboard and the future WeaknessPage (which needs the full
+list per 05 §3.3) — same cache-unity logic as D-P7-1.
+Noted discrepancy (deferred): the ?top=3 query param appears ignored server-side
+(4th document observed in the capture). Check weaknessController later; not
+blocking.
+
+### Working-practice rulings (this session)
+- Frontend types are written from OBSERVED response JSON, never from Phase 3
+  draft memory (Q4/seam lesson). Interfaces include only fields the UI consumes;
+  PlanProblem keeps _id because it is the :id for the solved/replace mutations
+  (04 §4.3).
+- topicColors.ts keys on EXACT CF tag strings (hot invariant: real tags only).
+  Unknown tags (observed live: "*special") take a fallback color — a lookup miss
+  must never crash a badge.
+- Dashboard cards use plain Tailwind shells, not the shadcn Card primitive (not
+  installed; avoids another CLI run + the untracked-file deploy hazard). Swap in
+  polish pass if desired.
+- New client constants: DASHBOARD_RECENT_CONTESTS_LIMIT=3,
+  DASHBOARD_TOP_GAPS_LIMIT=3, RELIABILITY_WINDOW=6, RELIABILITY_TARGET=4.
+
+### Hazard ledger additions
+- models.ts had onBoardingStep (capital B) vs backend onboardingStep — silent
+  undefined class; TypeScript cannot catch it because the interface itself is the
+  source of truth. Fixed. (Single-token casing family.)
+- Sort comparator direction (b.finalGap - a.finalGap) and [...data].sort spread
+  (bare .sort mutates React Query's cached array) flagged as recurring risks.
+- Join-key asymmetry: cfContestId vs contestId — compiles either way, silently
+  never matches if crossed.
+
+### Carried forward
+- Production signup smoke test on Render: STILL pending.
+- weaknessController ?top param check.
+- v1.5: mid-ingest reload loses banner; 0/6 reliability bars render invisible.
+- v2: gate app.listen on Mongo connection.
+- Phase 8: one integration test per HTTP entry point asserting first side-effect.
