@@ -1,12 +1,12 @@
 import {
-  generatePlan,
   markSolved,
   replaceProblem,
 } from "../engines/DailyPlanEngine.js";
 
+import * as planService from '../services/planService.js';
 export const getTodaysPlan = async (req, res, next) => {
   try {
-    const plan = await generatePlan(req.userId, new Date());
+    const plan = await planService.getTodaysPlan(req.userId);
     res.json({ success: true, data: plan });
   } catch (err) {
     next(err);
