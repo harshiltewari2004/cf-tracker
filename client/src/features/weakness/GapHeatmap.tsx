@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { Fragment,useMemo } from 'react';
 import { buildHeatmapGrid } from './buildHeatmapGrid';
 import { BUCKET_HEADER_COLORS } from '@/lib/constants';
 import type { TopicBucketScore } from '@/types/models';
@@ -40,8 +40,8 @@ export const GapHeatmap = ({ scores }: GapHeatmapProps) => {
 
         {/* data rows */}
         {grid.topics.map((topic) => (
-          <>
-            <div key={topic} className="py-2 pr-3 text-sm truncate">
+          <Fragment key={topic} >
+            <div className="py-2 pr-3 text-sm truncate">
               {topic}
             </div>
             {grid.buckets.map((bucket) => {
@@ -71,7 +71,7 @@ export const GapHeatmap = ({ scores }: GapHeatmapProps) => {
     </Popover>
   );
 })}
-          </>
+          </Fragment>
         ))}
       </div>
     </div>
