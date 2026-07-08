@@ -83,3 +83,18 @@ export interface DailyPlan {
   problems: PlanProblem[];
   completed: boolean;
 }  
+export interface BenchmarkMeta {
+  _id: string;
+  filters: {
+    country: string;
+    minRating: number;
+    maxRating: number;
+    minContests: number;
+    minSolves: number;
+    lastContestWithinDays: number;
+  };
+  N: number;
+  fallbackUsed: string | null;
+  lastRefreshed: string; // ISO string over the wire, not Date
+  version: number;
+}

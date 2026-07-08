@@ -10,3 +10,4 @@ export const DASHBOARD_RECENT_CONTESTS_LIMIT = 3;
 export const DASHBOARD_TOP_GAPS_LIMIT = 3;
 export const RELIABILITY_WINDOW = 6;  
 export const RELIABILITY_TARGET = 4;   
+export const BENCHMARK_STALE_TIME_MS = 24 * 60 * 60 * 1000;

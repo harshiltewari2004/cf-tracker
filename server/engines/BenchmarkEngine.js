@@ -163,3 +163,9 @@ export const refresh = async ({
   );
   return { version: newVersion, N: cohort.N, fallbackUsed: tier.fallbackUsed };
 };
+export const getLatestCohortMeta = async () => {
+  return BenchmarkCohort.findOne()
+    .sort({ version: -1 })
+    .select('N filters fallbackUsed lastRefreshed version')
+    .lean();
+};

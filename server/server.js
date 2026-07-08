@@ -17,7 +17,7 @@ import weaknessRouter from "./routes/weakness.js";
 import contestsRouter from "./routes/contests.js";
 import planRouter from "./routes/plan.js";
 import dashboardRouter from "./routes/dashboard.js";
-
+import benchmarkRouter from "./routes/benchmark.js";
 import "./workers/ingestWorker.js";
 import { connectDB } from "./config/db.js";
 import ingestRouter from "./routes/ingest.js";
@@ -56,6 +56,8 @@ app.use("/api/weakness", apiLimiter, weaknessRouter);
 app.use("/api/plan", apiLimiter, planRouter);
 
 app.use("/api/dashboard", apiLimiter, dashboardRouter);
+
+app.use('/api/benchmark', apiLimiter,benchmarkRouter);
 
 app.use(errorHandler);
 
