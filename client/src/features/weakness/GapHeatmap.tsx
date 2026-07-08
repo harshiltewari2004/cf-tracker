@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { buildHeatmapGrid } from './buildHeatmapGrid';
 import { BUCKET_HEADER_COLORS } from '@/lib/constants';
 import type { TopicBucketScore } from '@/types/models';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface GapHeatmapProps {
   scores: TopicBucketScore[];
@@ -44,15 +45,32 @@ export const GapHeatmap = ({ scores }: GapHeatmapProps) => {
               {topic}
             </div>
             {grid.buckets.map((bucket) => {
-              const cell = grid.cells.get(`${topic}|${bucket}`);
-              return (
-                <div
-                  key={`${topic}|${bucket}`}
-                  className="min-h-9 rounded-sm"
-                  style={{ backgroundColor: cellBackground(cell) }}
-                />
-              );
-            })}
+  const cell = grid.cells.get(`${topic}|${bucket}`);
+  if (!cell) {
+    return <div key={`${topic}|${bucket}`} className="min-h-9 rounded-sm" />;
+  }
+  return (
+    <Popover key={`${topic}|${bucket}`}>
+      <PopoverTrigger asChild>
+        <button
+          className="min-h-9 w-full rounded-sm transition-transform hover:scale-105"
+          style={{ backgroundColor: cellBackground(cell) }}
+          aria-label={`${topic} ${bucket}: ${Math.round(cell.finalGap * 100)}% gap`}
+        />
+      </PopoverTrigger>
+      <PopoverContent className="w-64 text-sm">
+        <p className="font-medium">
+          {topic} @ {bucket} — {Math.round(cell.finalGap * 100)}% gap
+        </p>
+        <div className="mt-2 space-y-1 text-muted-foreground">
+          <p>Solves: {cell.solves} / target {cell.targetCount}</p>
+          <p>Contest fails: {cell.contestFails} / opportunities {cell.contestOpportunities}</p>
+          <p>Base gap: {cell.baseGap.toFixed(2)} + penalty {cell.penalty.toFixed(2)}</p>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+})}
           </>
         ))}
       </div>
