@@ -834,3 +834,17 @@ planService.getTodaysPlan read path hydrates (D-P7-2). Therefore:
   the conforming read path.
 - Both service functions return Promise<void>: unpopulated bodies are discarded
   by design so the shape can never leak into cache or types.
+
+  ### D-P8-2 — ReplaceProblemDialog is confirm-then-swap, not preview-then-confirm
+05 §3.2 describes the dialog as "modal showing the candidate replacement",
+implying a preview flow. The backend (Phase 3, verified) has no preview
+endpoint: replaceProblem is commit-only — the stretch-zone search runs inside
+the mutation, and the response is unpopulated regardless (D-P8-1), so the
+client cannot render a candidate it hasn't committed to.
+Ruling: dialog confirms intent ("X will be swapped for another problem from
+your stretch zone — this won't count as a fail" per 02 §1), commits on
+confirm, and the invalidate-triggered refetch reveals the replacement
+populated. 422 no-substitute renders the server message inline and leaves the
+plan untouched. A preview endpoint (GET .../replacement-candidate) was
+rejected as backend scope creep at Week-5 position (07 risk markers); revisit
+in v1.5 alongside the replacement audit trail UI if the UX demands it.
