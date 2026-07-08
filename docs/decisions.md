@@ -848,3 +848,55 @@ populated. 422 no-substitute renders the server message inline and leaves the
 plan untouched. A preview endpoint (GET .../replacement-candidate) was
 rejected as backend scope creep at Week-5 position (07 risk markers); revisit
 in v1.5 alongside the replacement audit trail UI if the UX demands it.
+
+## Piece 9 — WeaknessPage (Phase 5)
+
+### D-P9-1: BenchmarkContextBadge sourced from new `GET /api/benchmark`
+**Decision:** Add a dedicated endpoint returning latest BenchmarkCohort metadata
+(`N`, `filters`, `fallbackUsed`, `lastRefreshed`, `version`), read via
+`BenchmarkEngine.getLatestCohortMeta()` (findOne, sort `version: -1`, lean).
+**Rejected:** (b) embedding cohort meta in the weakness response — couples a
+global singleton to a per-user collection, breaks the existing `['weakness']`
+array shape consumed by TopGapsCard (D-P7-4), and ties weekly-stable data to
+per-ingest cache invalidation. (c) deferring the badge — removes the
+credibility line from the hero screenshot; benchmark defensibility is a locked
+invariant (01).
+**Note:** Route is an addition beyond 04 §4.3's locked list; divergence logged
+per Phase 3 precedent. Sub-decision: badge renders `fallbackUsed` when
+non-null (audit honesty per 01 key invariants).
+**Frontend:** `['benchmark']` query key, `staleTime` = 24h
+(`BENCHMARK_STALE_TIME_MS`) matching weekly refresh cadence.
+
+### D-P9-2: CF-literate, not CF-lookalike
+**Decision:** Adopt Codeforces rating-color *semantics* for bucket badges and
+heatmap column headers (gray → green → cyan → blue → purple → orange → red);
+keep modern Tailwind/shadcn layout for everything else.
+**Rationale:** Target users have CF rating colors internalized — semantic
+familiarity serves the 07 "CP friend understands it at a glance" milestone.
+Pixel-cloning CF's legacy table design would undercut the portfolio-screenshot
+goal.
+
+### D-P9-3: Heatmap pruning — targetCount decides renderability
+**Decision:** Rows with `targetCount === 0` are filtered out as all-tags
+fan-out artifacts (cohort median is zero → no target existed). After
+filtering, topics with zero surviving cells and bucket columns with zero
+surviving cells are dropped entirely.
+**Rationale:** ~60% of TopicBucketScore rows are artifacts (confirmed against
+live data: 398 rows → ~25 topics × 8 buckets of signal). The benchmark itself
+decides what renders — no invented display thresholds.
+**Cell states:** three, visually distinct: (1) no row / `targetCount: 0` →
+neutral "no data"; (2) `finalGap: 0` with real target → earned zero (success
+tint); (3) `finalGap > 0` → single hue, intensity ∝ gap. Collapsing states
+1 and 2 would falsely display unattempted topics as mastered.
+
+### D-P9-4: Heatmap axis ordering
+**Decision:** Y-axis topics sorted by **max** `finalGap` across surviving
+cells, descending. X-axis buckets rendered in `BUCKET_ORDER` constant order
+(lib/constants.ts), filtered to survivors — never lexically sorted.
+**Rationale:** Max, not mean — averaging lets benign cells dilute one
+catastrophic cell, the same cancellation disease bucketing exists to prevent
+(01). Lexical bucket sort is wrong: `"800-1000"` sorts after `"3400-3600"`
+because `"3" < "8"` (observed in mongosh distinct output).
+**Implementation:** pure `buildHeatmapGrid(scores)` in `features/weakness/`,
+memoized in the component; all operations copy — the cached `['weakness']`
+array is shared with Dashboard and never mutated.
