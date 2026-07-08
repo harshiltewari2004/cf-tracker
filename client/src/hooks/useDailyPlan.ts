@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 import { planService } from '@/api/planService';
 
 import type { DailyPlan } from '@/types/models';
+
 
 export const useDailyPlan = () =>
   useQuery({ queryKey: ['plan', 'today'], queryFn: planService.getTodaysPlan });
@@ -40,6 +42,7 @@ export const useMarkSolved = () => {
       if (context?.previous) {
         queryClient.setQueryData(['plan', 'today'], context.previous);
       }
+      toast.error('Failed to mark solved. Please try again.');
     },
 
     onSettled: () => {
