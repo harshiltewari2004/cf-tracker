@@ -816,3 +816,21 @@ blocking.
 - v1.5: mid-ingest reload loses banner; 0/6 reliability bars render invisible.
 - v2: gate app.listen on Mongo connection.
 - Phase 8: one integration test per HTTP entry point asserting first side-effect.
+
+### D-P8-1 — Asymmetric cache strategy for plan mutations
+Mutation responses from /solved and /replace return unpopulated problems[].problem
+(bare ObjectIds — observed via Thunder Client 2026-07-08); only the
+planService.getTodaysPlan read path hydrates (D-P7-2). Therefore:
+- setQueryData with a mutation response body is prohibited — it poisons the
+  shared ['plan','today'] cache (D-P7-1) and crashes every ProblemCard consumer.
+- markSolved: optimistic setQueryData patch in onMutate flipping ONLY the target
+  slot's status (client already knows the outcome), snapshot-rollback in onError,
+  invalidateQueries in onSettled to reconcile server-owned solvedAt/completed.
+  This implements 05 §3.2 "optimistic update + invalidate plan query" literally.
+- replaceProblem: invalidateQueries only. The replacement is chosen server-side
+  and arrives unpopulated, so no optimistic render is possible; the dialog shows
+  isPending until the populated refetch lands. 05 §3.2's "replaces in cache"
+  assumed a populated response — superseded by the observed seam, same UX via
+  the conforming read path.
+- Both service functions return Promise<void>: unpopulated bodies are discarded
+  by design so the shape can never leak into cache or types.
