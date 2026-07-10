@@ -949,3 +949,40 @@ Claude Design — honest stat line, filled-cell severity, categorical three
 states. Ported by hand as a styling-only session AFTER the Phase 7 polish
 pass, alongside Framer Motion work. CP-friend milestone test moves to that
 session.
+
+## Piece 10 — ContestsPage (Phase 6)
+
+### D-P10-1: A/B join copied from RecentContestsCard
+Parent-level closure `abFor(cfContestId)` doing `.find()` over
+reliability.last6Contests; rows receive the joined value (possibly
+undefined → renders '–'), never the reliability shape. Copied per seam
+rule (08 §15) over a Map micro-optimization — 20×6 find is trivial,
+consistency wins. Join keys differ by name: contestId (reliability) vs
+cfContestId (contests), per D-P7-3.
+
+### D-P10-2: Dedicated unlimited useContests hook
+Added useContests (['contests'], no limit) alongside useRecentContests
+(['contests','recent'], limit 3). Root cause of the 3-row timeline bug:
+only the dashboard hook existed, hardcoding DASHBOARD_RECENT_CONTESTS_LIMIT
+in its queryFn; identical return types let the wrong source compile
+cleanly. Rule: hooks encode their fetch parameters in the query key —
+same key + different limits poisons the shared cache.
+
+### D-P10-3: Timeline renders solved-semantics; breakdown owns reliability
+ContestRow shows solvedA/B (✓/✗), matching the dashboard card;
+ReliabilityBreakdown directly above keys cells off aReliable/bReliable
+with times. Two components answer two questions ("did I solve it" vs
+"did it count toward 4/6") — showing reliability in both would render a
+25m A as ✗ everywhere with no acknowledgment of the solve.
+
+### D-P10-4: Row navigation deferred to P11
+/contests/:cfContestId route exists but ContestDetailPage is a shell;
+rows ship non-clickable rather than dead-linking. onClick + hover wire
+in P11, one-line change.
+
+### D-P10-5: Div2-only tracking narrower than 02's wording (wontfix MVP)
+02 §3 says other divisions are "tracked but not used"; in practice the
+contest catalog is Div2-only and deriveContestResults skips non-catalog
+contests, so Div3/Educational/combined rounds are not tracked at all.
+Observed: Round 1100 (Spectral::Cup combined, rated) absent — rating
+chain jumps 719→719 across it. Catalog-classification question deferred.
