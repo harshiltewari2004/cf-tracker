@@ -1,5 +1,6 @@
 import { SuccessMetricBanner } from '@/features/contests/SuccessMetricBanner';
 import { ReliabilityBreakdown } from '@/features/contests/ReliabilityBreakdown';
+import { ContestTimeline } from '@/features/contests/ContestTimeline';
 const ContestsPage = () => {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
@@ -7,6 +8,7 @@ const ContestsPage = () => {
       <SuccessMetricBanner />
     
       <ReliabilityBreakdown />
+      <ContestTimeline />
     </div>
   );
 };
