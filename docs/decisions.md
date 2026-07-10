@@ -900,3 +900,52 @@ because `"3" < "8"` (observed in mongosh distinct output).
 **Implementation:** pure `buildHeatmapGrid(scores)` in `features/weakness/`,
 memoized in the component; all operations copy — the cached `['weakness']`
 array is shared with Dashboard and never mutated.
+
+### D-P9-5: TopicGapList tie-break by absolute deficit
+**Decision:** Flat list sorts by `finalGap` desc, ties broken by absolute
+deficit `(targetCount − solves)` desc.
+**Rationale:** Gap% ties are ubiquitous at 1.0; deficit measures practical
+distance behind the cohort. dp@1600-1800 at 0/19 (19 behind) must outrank
+hashing@1600-1800 at 0/1 (1 behind) — same 100% gap, wildly different
+practical weight. Different tie-break than the heatmap's gap-sum (D-P9-4)
+because a flat list ranks rows, not topics.
+**Implementation:** Sort applied after `.filter(s => s.targetCount > 0)` —
+filter returns a fresh array, so in-place `.sort` is safe against the shared
+React Query cache. Parens hazard: `(b.targetCount - b.solves) -
+(a.targetCount - a.solves)`.
+
+### D-P9-6: Benchmark refresh date formatting
+**Decision:** date-fns `format(new Date(lastRefreshed), 'MMM d, yyyy')` —
+client install approved as extension of an already-approved library
+(04 §2 server-side), not a new-tech introduction. Manifests committed
+alongside the component.
+**Rationale:** One formatting call did not justify avoiding a library
+already approved elsewhere in the stack; extending it client-side is the
+boring choice and buys consistency with server date handling for future
+call sites.
+
+### D-P9-7: Mobile view — heatmap hidden, list serves
+**Decision:** Below 768px (`md`), GapHeatmap is hidden (`hidden md:block`
+wrapper); TopicGapList is the sole mobile view.
+**Rationale:** The list is a superset of the grid's information (topic,
+bucket, gap%, raw fractions) and is already deficit-sorted so worst
+weaknesses lead. A 25×8 color matrix at 375px is unreadable regardless of
+stacking; 05 §9 asks for "a stacked list view" and TopicGapList already is
+one. Zero new components. Dedicated mobile heatmap deferred to v1.5.
+**Hazard noted:** wrapper surrounds the heatmap ONLY — wrapping both hides
+everything on mobile.
+
+### D-P9-8: GapHeatmap view deferred; logic retained
+**Decision:** The GapHeatmap VIEW does not ship in Piece 9. GapHeatmap.tsx
+and buildHeatmapGrid.ts remain on disk with logic intact; the render is
+commented out in WeaknessPage. Page ships TopicGapList +
+BenchmarkContextBadge (+ GapExplainer via the list).
+**Rationale:** As rendered, the heatmap read as "just a color palette" — it
+did not convey the gap message, failing the 07 hero-component bar. Data
+layer (D-P9-3/4 sort, three-state cells, memoized grid build) is verified
+and correct; the failure is presentation-only.
+**Restyle path (already chosen):** the "Weakness scan" wall direction from
+Claude Design — honest stat line, filled-cell severity, categorical three
+states. Ported by hand as a styling-only session AFTER the Phase 7 polish
+pass, alongside Framer Motion work. CP-friend milestone test moves to that
+session.
