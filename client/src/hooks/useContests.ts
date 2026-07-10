@@ -8,3 +8,9 @@ export const useRecentContests = () =>
     queryKey: ['contests', 'recent'],
     queryFn: () => contestService.getContests(DASHBOARD_RECENT_CONTESTS_LIMIT),
   });
+
+  export const useContests = () =>
+  useQuery({
+    queryKey: ['contests'],
+    queryFn: () => contestService.getContests(),
+  });
