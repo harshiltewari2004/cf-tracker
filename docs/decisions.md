@@ -986,3 +986,25 @@ contest catalog is Div2-only and deriveContestResults skips non-catalog
 contests, so Div3/Educational/combined rounds are not tracked at all.
 Observed: Round 1100 (Spectral::Cup combined, rated) absent — rating
 chain jumps 719→719 across it. Catalog-classification question deferred.
+
+D-P11-1 — GapImpactList descoped; feedback endpoint stays deferred.
+05 §3.5 wants "which TopicBucketScores were updated" per contest. No
+per-contest delta model exists (TopicBucketScore stores current state).
+Client-side re-derivation from populated tags was rejected: attribution
+semantics (all-tags, A/B-only opportunities, CONTESTANT-only fails) must
+have exactly one implementation (ContestFeedbackEngine). A second copy in
+a component drifts silently when v2 weighted attribution lands (02 scope
+phasing). Same single-source principle as KEY_SEP promotion and D-P8-1.
+ContestDetailPage ships 3 of 4 spec'd components — 05 §3.5 divergence.
+
+D-P11-2 — getContestDetail populates problem (name rating url) on the
+read path, mirroring planService.getTodaysPlan (P7/P8 seam). tags
+excluded from projection so the client cannot re-derive attribution
+(reinforces D-P11-1). Projection audit paid on both queries: positive
+.select(), __v/timestamps/user no longer serialized.
+
+D-P11-3 — ContestProblemMatrix renders problems[] as a variable-length
+row list in served (catalog) order; raw problemIndex is display truth
+(C1/C2/A2 shown as-is). A2→A canonicalization applies to reliability
+math only (isDiv2A/B flags), per 02 §3. Hardcoded A/B/C/D grid falsified
+by captures (2234: 7 problems; 2228: 8 with C1/C2, E1/E2).

@@ -14,7 +14,9 @@ export const getContestDetail = async (userId, cfContestId) => {
   const contest = await ContestResult.findOne({
     user: userId,
     cfContestId,
-  }).lean();
+  })
+  .select('cfContestId contestName isDiv2 rank oldRating newRating ratingChange participatedAt')
+  .lean();
 
   if (!contest) {
     throw new AppError("Contest not found", 404);
@@ -22,7 +24,9 @@ export const getContestDetail = async (userId, cfContestId) => {
   const problems = await ContestProblemResult.find({
     user: userId,
     cfContestId,
-  }).lena();
+  }).select('problemIndex problem status firstACTime failCount isDiv2A isDiv2B')
+  .populate('problem','name rating url')
+  .lean();
 
   return { ...contest, problems };
 };
