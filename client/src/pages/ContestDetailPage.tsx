@@ -3,11 +3,11 @@ import { useParams } from 'react-router-dom';
 import { useContestDetail } from '@/hooks/useContests';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { EmptyState } from '@/components/shared/EmptyState';
-
+import { ContestSummaryCard } from '@/features/contests/ContestSummaryCard';
 
 const ContestDetailPage = () => {
   const { cfContestId } = useParams();
-  const contestId = Number(cfContestId); // useParams returns STRINGS — '2234' === 2234 is false
+  const contestId = Number(cfContestId); 
 
   const { data, isLoading, isError } = useContestDetail(contestId);
 
@@ -18,9 +18,10 @@ if (!data) return <EmptyState title="Contest not found" description="This contes
   return (
   <div className="mx-auto max-w-3xl space-y-6 p-6">
     <h1 className="text-2xl font-bold">{data.contestName}</h1>
+    <ContestSummaryCard contest={data} />
     <p className="text-sm text-slate-500">Contest detail — components coming next</p>
   </div>
 );
 };
 
-export default ContestDetailPage; // pages default-export; everything else named
+export default ContestDetailPage; 
