@@ -14,3 +14,10 @@ export const useRecentContests = () =>
     queryKey: ['contests'],
     queryFn: () => contestService.getContests(),
   });
+
+  export const useContestDetail = (cfContestId: number) =>
+  useQuery({
+    queryKey: ['contests', cfContestId],
+    queryFn: () => contestService.getContestDetail(cfContestId),
+    enabled: Number.isFinite(cfContestId), 
+  });

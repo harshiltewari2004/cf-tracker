@@ -98,3 +98,31 @@ export interface BenchmarkMeta {
   lastRefreshed: string; // ISO string over the wire, not Date
   version: number;
 }
+export interface ContestProblemDetail {
+  _id: string;
+  problemIndex: string;          
+  problem: {
+    _id: string;
+    name: string;
+    rating: number;
+    url: string;
+  };                            
+  status: 'solved' | 'failed' | 'unattempted';
+  firstACTime: number | null;   
+  failCount: number;
+  isDiv2A: boolean;              
+  isDiv2B: boolean;
+}
+
+export interface ContestDetail {
+  _id: string;
+  cfContestId: number;
+  contestName: string;
+  isDiv2: boolean;
+  rank: number;
+  oldRating: number;
+  newRating: number;
+  ratingChange: number;
+  participatedAt: string;
+  problems: ContestProblemDetail[];
+}
