@@ -4,6 +4,7 @@ import { useContestDetail } from '@/hooks/useContests';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { ContestSummaryCard } from '@/features/contests/ContestSummaryCard';
+import { ContestProblemMatrix } from '@/features/contests/ContestProblemMatrix';
 
 const ContestDetailPage = () => {
   const { cfContestId } = useParams();
@@ -19,6 +20,7 @@ if (!data) return <EmptyState title="Contest not found" description="This contes
   <div className="mx-auto max-w-3xl space-y-6 p-6">
     <h1 className="text-2xl font-bold">{data.contestName}</h1>
     <ContestSummaryCard contest={data} />
+    <ContestProblemMatrix problems={data.problems} />
     <p className="text-sm text-slate-500">Contest detail — components coming next</p>
   </div>
 );
