@@ -18,13 +18,20 @@ import SettingsPage from "@/pages/SettingsPage";
 import HandleEntryPage from "@/pages/HandleEntryPage";
 import IngestProgressPage from "@/pages/IngestProgressPage";
 import NotFoundPage from "@/pages/NotFoundPage";
+import { RouteErrorFallback } from "./components/shared/RouteErrorFallback";
 
 export const router = createBrowserRouter([
-  { path: "/", element: <RootRedirect /> },
+  
+  
   {
-    element: <GuestRoute />,
+    errorElement:<RouteErrorFallback/>,
+
     children: [
+      { path: "/", element: <RootRedirect /> },
       {
+         element: <GuestRoute />,
+        children: [
+        {
         element: <AuthLayout />,
         children: [
           { path: "/login", element: <LoginPage /> },
@@ -57,4 +64,7 @@ export const router = createBrowserRouter([
     ],
   },
   { path: "*", element: <NotFoundPage /> },
+
+],
+  },
 ]);
