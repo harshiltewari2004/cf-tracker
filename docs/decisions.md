@@ -1008,3 +1008,52 @@ row list in served (catalog) order; raw problemIndex is display truth
 (C1/C2/A2 shown as-is). A2→A canonicalization applies to reliability
 math only (isDiv2A/B flags), per 02 §3. Hardcoded A/B/C/D grid falsified
 by captures (2234: 7 problems; 2228: 8 with C1/C2, E1/E2).
+
+## D-P12-1 — UpsolveAddedList descoped from MVP (no per-contest upsolve endpoint)
+
+**Decision:** `<UpsolveAddedList />` and its would-be endpoint
+(`GET /api/contests/:id/upsolves`) are descoped from MVP. The contest
+detail page renders nothing in its place — no placeholder, no promise
+box. Ships in v1.5 alongside the deferred GapImpactList (D-P11-1).
+
+**Rationale:** No upsolve read route exists (06 — UpsolveQueue is consumed
+server-side by DailyPlanEngine only), so any option means building a full
+vertical slice (~6 files: route, controller, service, client service,
+hook, types). The after-signup gate (03 §8) means every contest currently
+in the system renders the empty state, and will until the next real rated
+contest — so the entire slice ships to display nothing, at the phase
+boundary where 07 §8 names scope creep as the failure mode. The deciding
+argument is cost-to-visible-value, not testability: the rendering is
+trivially testable with seeded rows; what can't be exercised is the
+end-to-end pipeline, which is server-side and already smoke-verified in
+Phase 3. Upsolve information is not lost — queued problems surface where
+they act, in the daily plan (2 gap + 1 upsolve).
+
+**Contrast with D-P11-1:** same page, same posture, different reason —
+GapImpactList was descoped for *correctness* (attribution drift hazard);
+UpsolveAddedList is descoped for *value* (empty-state-dominant, phase
+discipline).
+
+**Revisit when:** first real post-signup Div 2 contest populates
+UpsolveQueue, or v1.5 kickoff — whichever comes first.
+
+## D-P12-2 — ContestProblemMatrix: `status` is the sole state discriminator
+
+**Decision:** Row rendering branches exclusively on the `status` enum
+(solved / failed / unattempted) via a `Record<status, style>` map.
+`firstACTime` and `failCount` are details layered on an already-decided
+state — `failCount` renders only when > 0, never influences the branch.
+
+**Rationale:** Both alternatives are proxies that collapse states:
+keying off `firstACTime` merges failed with unattempted (both null);
+keying off `failCount` merges unattempted with solved-clean (both 0) and
+paints solved-after-WA rows as failures. Same proxy-vs-truth principle
+as ReliabilityBreakdown (D-P10-x), which keyed cell color off
+aReliable/bReliable and deliberately excluded solvedA/solvedB. Verified
+against both captures: 2234 (solved + unattempted) and 2228 (the sole
+failed row, A with failCount 1).
+
+**Also locked in implementation:** raw `problemIndex` as display truth,
+isDiv2A/B absent from the file entirely (D-P11-3); `formatTime` duplicated
+locally from ContestSummaryCard (2nd copy — promote to lib on 3rd use,
+rule-of-three).
