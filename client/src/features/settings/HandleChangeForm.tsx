@@ -52,8 +52,6 @@ export const HandleChangeForm = () => {
 
   const serverError = getServerErrorMessage(updateHandle.error);
 
-  console.log('mutation error:', updateHandle.error, '→ serverError:', serverError);
-
   return (
     <div className="space-y-3">
       <h2 className="text-lg font-semibold">Codeforces handle</h2>
