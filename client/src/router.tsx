@@ -1,3 +1,4 @@
+import {lazy,Suspense} from 'react';
 import { createBrowserRouter } from "react-router-dom";
 
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
@@ -6,20 +7,22 @@ import { RootRedirect } from "@/components/layout/RootRedirect";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { OnboardingLayout } from "@/components/layout/OnboardingLayout";
 import { AppLayout } from "@/components/layout/AppLayout";
-
+import { LoadingState } from '@/components/shared/LoadingState';
 import LoginPage from "@/pages/LoginPage";
 import SignupPage from "@/pages/SignupPage";
 import DashboardPage from "@/pages/DashboardPage";
 import DailyPlanPage from "@/pages/DailyPlanPage";
 import WeaknessPage from "@/pages/WeaknessPage";
 import ContestsPage from "@/pages/ContestsPage";
-import ContestDetailPage from "@/pages/ContestDetailPage";
-import SettingsPage from "@/pages/SettingsPage";
+
 import HandleEntryPage from "@/pages/HandleEntryPage";
 import IngestProgressPage from "@/pages/IngestProgressPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import { RouteErrorFallback } from "./components/shared/RouteErrorFallback";
-
+// eslint-disable-next-line react-refresh/only-export-components
+const ContestDetailPage = lazy(() => import('@/pages/ContestDetailPage'));
+// eslint-disable-next-line react-refresh/only-export-components
+const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 export const router = createBrowserRouter([
   
   
@@ -57,8 +60,22 @@ export const router = createBrowserRouter([
           { path: "/plan", element: <DailyPlanPage /> },
           { path: "/weakness", element: <WeaknessPage /> },
           { path: "/contests", element: <ContestsPage /> },
-          { path: "/contests/:cfContestId", element: <ContestDetailPage /> },
-          { path: "/settings", element: <SettingsPage /> },
+          {
+      path: '/contests/:cfContestId',
+           element: (
+            <Suspense fallback={<LoadingState />}>
+              <ContestDetailPage />
+            </Suspense>
+      ),
+},
+{
+          path: '/settings',
+            element: (
+            <Suspense fallback={<LoadingState />}>
+              <SettingsPage />
+            </Suspense>
+  ),
+},
         ],
       },
     ],
