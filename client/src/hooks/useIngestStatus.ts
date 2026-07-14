@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery ,useQueryClient} from "@tanstack/react-query";
 
 import { ingestService } from "@/api/ingestService";
 import { useIngestStore } from "@/stores/ingestStore";
@@ -19,13 +19,14 @@ export const useIngestStatus = () => {
       return INGEST_POLL_INTERVAL_MS;
     },
   });
-
+  const queryClient = useQueryClient();
   const status = query.data?.status;
   useEffect(() => {
     if (status === "complete" || status === "failed") {
       useIngestStore.getState().setIngestActive(false);
+      queryClient.invalidateQueries();
     }
-  }, [status]);
+  }, [status,queryClient]);
 
   return query;
 };

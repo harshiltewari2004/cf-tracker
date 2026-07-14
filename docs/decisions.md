@@ -1057,3 +1057,10 @@ failed row, A with failCount 1).
 isDiv2A/B absent from the file entirely (D-P11-3); `formatTime` duplicated
 locally from ContestSummaryCard (2nd copy — promote to lib on 3rd use,
 rule-of-three).
+
+D-P13-3 — completion-side blanket invalidateQueries() lives in useIngestStatus, serving onboarding and handle-change with one mechanism.
+D-P13-4 — DeleteAccountSection deferred (backend exists; UI is v1.5-adjacent breadth).
+D-P13-5 — handle change doesn't cancel in-flight ingest jobs (tourist incident: FLUSHDB + zombie-job repair; wipe-integrity scare resolved as diagnostic error, not leak). v2 alongside BullMQ repeatable-jobs.
+v1.5 item: same-handle precheck + clearer 409 copy (three bites in one session).
+
+
