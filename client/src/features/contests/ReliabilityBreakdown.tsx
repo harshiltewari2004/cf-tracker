@@ -1,12 +1,18 @@
 import { useReliability } from '@/hooks/useReliability';
-import { LoadingState } from '@/components/shared/LoadingState';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const formatTime = (minutes: number | null) => (minutes != null ? `${minutes}m` : '—');
 
 export const ReliabilityBreakdown = () => {
   const { data: reliability, isLoading, isError } = useReliability();
 
-  if (isLoading) return <LoadingState />;
+  if (isLoading)
+  return (
+    <div className="rounded-lg border bg-white p-4">
+      <h2 className="mb-3 font-semibold">Last 6 Contests</h2>
+      <Skeleton className="h-24 w-full" />
+    </div>
+  );
   if (isError || !reliability)
     return <p className="text-sm text-red-600">Couldn't load reliability data.</p>;
 

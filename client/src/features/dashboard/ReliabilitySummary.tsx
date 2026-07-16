@@ -1,5 +1,5 @@
 import { useReliability } from '@/hooks/useReliability';
-import { LoadingState } from '@/components/shared/LoadingState';
+import { Skeleton } from '@/components/ui/skeleton';
 import { RELIABILITY_WINDOW, RELIABILITY_TARGET } from '@/lib/constants';
 
 const ReliabilityBar = ({ label, count }: { label: string; count: number }) => (
@@ -22,7 +22,20 @@ const ReliabilityBar = ({ label, count }: { label: string; count: number }) => (
 export const ReliabilitySummary = () => {
   const { data, isLoading, isError } = useReliability();
 
-  if (isLoading) return <LoadingState />;
+  if (isLoading)
+  return (
+    <div className="rounded-lg border bg-white p-4">
+      <h2 className="mb-3 font-semibold">Reliability</h2>
+      <div className="mt-3 flex flex-col gap-4">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="flex flex-col gap-1.5">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-2 w-full" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
   if (isError) return <p className="text-sm text-red-600">Couldn't load reliability.</p>;
   if (!data || data.totalReal === 0)
     return (

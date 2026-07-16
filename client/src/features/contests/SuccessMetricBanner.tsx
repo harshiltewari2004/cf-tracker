@@ -1,11 +1,25 @@
 import { useReliability } from '@/hooks/useReliability';
-import { LoadingState } from '@/components/shared/LoadingState';
+import { Skeleton } from '@/components/ui/skeleton';
 import { RELIABILITY_TARGET, RELIABILITY_WINDOW } from '@/lib/constants';
 
 export const SuccessMetricBanner = () => {
   const { data: reliability, isLoading, isError } = useReliability();
 
-  if (isLoading) return <LoadingState />;
+  if (isLoading)
+  return (
+    <div className="rounded-lg border bg-white p-4">
+      <h2 className="font-semibold">Div 2 Reliability</h2>
+      <div className="mt-3 flex flex-col gap-2">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3">
+            <Skeleton className="h-4 w-4" />
+            <Skeleton className="h-2 flex-1" />
+            <Skeleton className="h-4 w-20" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
   if (isError || !reliability)
     return <p className="text-sm text-red-600">Couldn't load reliability data.</p>;
 

@@ -1,11 +1,23 @@
 import { useDailyPlan } from '@/hooks/useDailyPlan';
-import { LoadingState } from '@/components/shared/LoadingState';
 import { TopicBadge } from '@/components/shared/TopicBadge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const DailyPlanWidget = () => {
   const { data: plan, isLoading, isError } = useDailyPlan();
 
-  if (isLoading) return <LoadingState />;
+  if (isLoading)  return (
+    <div className="rounded-lg border bg-white p-4">
+      <h2 className="mb-3 font-semibold">Today's Plan</h2>
+      <div className="flex flex-col gap-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="flex flex-col gap-1.5">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
   if (isError) return <p className="text-sm text-red-600">Couldn't load today's plan.</p>;
   if (!plan || plan.problems.length === 0)
     return (

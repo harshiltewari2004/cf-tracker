@@ -1,6 +1,6 @@
 
 import { useReliability } from '@/hooks/useReliability';
-import { LoadingState } from '@/components/shared/LoadingState';
+import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { ContestRow } from './ContestRow';
 import { useContests } from '@/hooks/useContests';
@@ -8,7 +8,14 @@ export const ContestTimeline = () => {
   const { data: contests, isLoading, isError } = useContests();
   const { data: reliability } = useReliability();
 
-  if (isLoading) return <LoadingState />;
+  if (isLoading)
+  return (
+    <div className="flex flex-col gap-3">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <Skeleton key={i} className="h-16 w-full rounded-lg" />
+      ))}
+    </div>
+  );
   if (isError) return <p className="text-sm text-red-600">Couldn't load contests.</p>;
   if (!contests || contests.length === 0)
     return (

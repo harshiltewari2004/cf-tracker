@@ -1,12 +1,12 @@
 import { useState } from 'react';
 
 import { EmptyState } from '@/components/shared/EmptyState';
-import { LoadingState } from '@/components/shared/LoadingState';
+
 import { PlanCompletionMeter } from '@/features/plan/PlanCompletionMeter';
 import { PlanProblemList } from '@/features/plan/PlanProblemList';
 import { ReplaceProblemDialog } from '@/features/plan/ReplaceProblemDialog';
 import { useDailyPlan, useMarkSolved, useReplaceProblem } from '@/hooks/useDailyPlan';
-
+import { Skeleton } from '@/components/ui/skeleton';
 import type { PlanProblem } from '@/types/models';
 
 const DailyPlanPage = () => {
@@ -15,7 +15,15 @@ const DailyPlanPage = () => {
   const replaceProblem = useReplaceProblem();
   const [replaceTarget, setReplaceTarget] = useState<PlanProblem | null>(null);
 
-  if (isLoading) return <LoadingState />;
+  if (isLoading) return (
+    <div className="mx-auto max-w-3xl space-y-6">
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-2 w-full" />
+      {Array.from({ length: 3 }).map((_, i) => (
+        <Skeleton key={i} className="h-28 w-full rounded-lg" />
+      ))}
+    </div>
+  );
   if (isError) return <EmptyState title="Couldn't load today's plan" description="Please try again." />;
   if (!plan || plan.problems.length === 0)
     return <EmptyState title="No plan for today" description="Check back after your next sync." />;

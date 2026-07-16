@@ -1,12 +1,22 @@
 import { useWeakness } from '@/hooks/useWeakness';
-import { LoadingState } from '@/components/shared/LoadingState';
+import { Skeleton } from '@/components/ui/skeleton';
 import { TopicBadge } from '@/components/shared/TopicBadge';
 import { DASHBOARD_TOP_GAPS_LIMIT } from '@/lib/constants';
 
 export const TopGapsCard = () => {
   const { data, isLoading, isError } = useWeakness();
 
-  if (isLoading) return <LoadingState />;
+  if (isLoading)
+  return (
+    <div className="rounded-lg border bg-white p-4">
+      <h2 className="mb-3 font-semibold">Top Gaps</h2>
+      <div className="flex flex-col gap-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-4 w-56" />
+        ))}
+      </div>
+    </div>
+  );
   if (isError) return <p className="text-sm text-red-600">Couldn't load weaknesses.</p>;
   if (!data || data.length === 0)
     return (

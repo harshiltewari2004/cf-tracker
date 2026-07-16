@@ -1,12 +1,25 @@
 import { useRecentContests } from '@/hooks/useContests';
 import { useReliability } from '@/hooks/useReliability';
-import { LoadingState } from '@/components/shared/LoadingState';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const RecentContestsCard = () => {
   const { data: contests, isLoading, isError } = useRecentContests();
     const { data: reliability } = useReliability();
 
-  if (isLoading) return <LoadingState />;
+  if (isLoading)
+  return (
+    <div className="rounded-lg border bg-white p-4">
+      <h2 className="mb-3 font-semibold">Recent Contests</h2>
+      <div className="flex flex-col gap-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="flex flex-col gap-1.5">
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-3 w-32" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
   if (isError) return <p className="text-sm text-red-600">Couldn't load contests.</p>;
   if (!contests || contests.length === 0)
     return (
