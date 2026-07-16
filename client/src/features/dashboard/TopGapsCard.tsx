@@ -9,8 +9,12 @@ export const TopGapsCard = () => {
   if (isLoading) return <LoadingState />;
   if (isError) return <p className="text-sm text-red-600">Couldn't load weaknesses.</p>;
   if (!data || data.length === 0)
-    return <p className="text-sm text-slate-500">No gap data yet.</p>;
-
+    return (
+      <div className="rounded-lg border bg-white p-4">
+        <h2 className="mb-3 font-semibold">Top Gaps</h2>
+        <p className="text-sm text-slate-500">No gap data yet.</p>
+      </div>
+    );
   const topGaps = [...data]
     .sort((a, b) => b.finalGap - a.finalGap)
     .slice(0, DASHBOARD_TOP_GAPS_LIMIT);

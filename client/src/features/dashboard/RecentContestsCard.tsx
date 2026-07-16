@@ -9,8 +9,12 @@ export const RecentContestsCard = () => {
   if (isLoading) return <LoadingState />;
   if (isError) return <p className="text-sm text-red-600">Couldn't load contests.</p>;
   if (!contests || contests.length === 0)
-    return <p className="text-sm text-slate-500">No contests yet.</p>;
-
+    return (
+      <div className="rounded-lg border bg-white p-4">
+        <h2 className="mb-3 font-semibold">Recent Contests</h2>
+        <p className="text-sm text-slate-500">No contests yet.</p>
+      </div>
+    );
   
   const abFor = (cfContestId: number) =>
     reliability?.last6Contests.find((c) => c.contestId === cfContestId);

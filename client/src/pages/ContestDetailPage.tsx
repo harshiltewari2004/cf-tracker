@@ -21,7 +21,6 @@ if (!data) return <EmptyState title="Contest not found" description="This contes
     <h1 className="text-2xl font-bold">{data.contestName}</h1>
     <ContestSummaryCard contest={data} />
     <ContestProblemMatrix problems={data.problems} />
-    <p className="text-sm text-slate-500">Contest detail — components coming next</p>
   </div>
 );
 };

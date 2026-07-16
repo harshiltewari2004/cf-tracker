@@ -25,8 +25,14 @@ export const ReliabilitySummary = () => {
   if (isLoading) return <LoadingState />;
   if (isError) return <p className="text-sm text-red-600">Couldn't load reliability.</p>;
   if (!data || data.totalReal === 0)
-    return <p className="text-sm text-slate-500">No real Div 2 contests yet.</p>;
-
+    return (
+      <div className="rounded-lg border bg-white p-4">
+        <h2 className="mb-3 font-semibold">Reliability</h2>
+        <p className="text-sm text-slate-500">
+          No real Div 2 contests yet — your record starts with your first round.
+        </p>
+      </div>
+    );
   return (
     <div className="rounded-lg border bg-white p-4">
       <h2 className="mb-3 font-semibold">Reliability</h2>

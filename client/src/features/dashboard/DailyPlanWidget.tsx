@@ -8,8 +8,12 @@ export const DailyPlanWidget = () => {
   if (isLoading) return <LoadingState />;
   if (isError) return <p className="text-sm text-red-600">Couldn't load today's plan.</p>;
   if (!plan || plan.problems.length === 0)
-    return <p className="text-sm text-slate-500">No plan for today yet.</p>;
-
+    return (
+      <div className="rounded-lg border bg-white p-4">
+        <h2 className="mb-3 font-semibold">Today's Plan</h2>
+        <p className="text-sm text-slate-500">No plan for today yet.</p>
+      </div>
+    );
   const solvedCount = plan.problems.filter((p) => p.status === 'solved').length;
 
   return (
