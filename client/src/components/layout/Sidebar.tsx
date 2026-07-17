@@ -1,13 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { NAV_ITEMS } from '@/lib/constants';
 
-const NAV_ITEMS = [
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/plan", label: "Plan" },
-  { to: "/weakness", label: "Weakness" },
-  { to: "/contests", label: "Contests" },
-  { to: "/settings", label: "Settings" },
-];
 
 export const Sidebar = () => (
   <aside className="w-56 border-r border-slate-200 p-4">

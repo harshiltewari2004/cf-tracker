@@ -45,3 +45,13 @@ export const BUCKET_HEADER_COLORS: Record<string, string> = {
   '3200-3400': '#FF0000',
   '3400-3600': '#FF0000',
 };
+
+import { LayoutDashboard, ListTodo, Target, Trophy, Settings } from 'lucide-react';
+
+export const NAV_ITEMS = [
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/plan', label: 'Plan', icon: ListTodo },
+  { to: '/weakness', label: 'Weakness', icon: Target },
+  { to: '/contests', label: 'Contests', icon: Trophy },
+  { to: '/settings', label: 'Settings', icon: Settings },
+] as const;

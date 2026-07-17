@@ -24,8 +24,9 @@ export const ReliabilityBreakdown = () => {
     <div className="rounded-lg border bg-white p-4">
       <h2 className="mb-1 font-semibold">Last {last6Contests.length} Contests</h2>
       <p className="mb-3 text-xs text-slate-500">Most recent first · A reliable under 15m · B under 40m</p>
+      <div className="overflow-x-auto">
       <div
-        className="grid gap-1"
+        className="grid min-w-[28rem] gap-1"
         style={{ gridTemplateColumns: `2rem repeat(${last6Contests.length}, minmax(0, 1fr))` }}
       >
         <div />
@@ -44,6 +45,7 @@ export const ReliabilityBreakdown = () => {
         {last6Contests.map((c) => (
           <ReliabilityCell key={c.contestId} reliable={c.bReliable} time={c.timeB} />
         ))}
+      </div>
       </div>
     </div>
   );

@@ -15,7 +15,7 @@ export const TopicGapList = ({ scores }: TopicGapListProps) => {
   );
 
   return (
-    <div className="rounded-lg border">
+    <div className="overflow-x-auto rounded-lg border">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b text-left text-muted-foreground">

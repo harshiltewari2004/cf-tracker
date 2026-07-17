@@ -43,13 +43,13 @@ export default function SignupPage() {
   return (
     <form onSubmit={handleSubmit(handleSignup)} className="space-y-4">
       <div>
-        <Input type="text" placeholder="Name" {...register("name")} />
+        <Input type="text" placeholder="Name" autoComplete="name" {...register("name")} />
         {errors.name && (
           <p className="text-sm text-destructive">{errors.name.message}</p>
         )}
       </div>
       <div>
-        <Input type="email" placeholder="Email" {...register("email")} />
+        <Input type="email" placeholder="Email" autoComplete="email"{...register("email")} />
         {errors.email && (
           <p className="text-sm text-destructive">{errors.email.message}</p>
         )}
@@ -58,6 +58,7 @@ export default function SignupPage() {
         <Input
           type="password"
           placeholder="Password"
+          autoComplete="new-password"
           {...register("password")}
         />
         {errors.password && (

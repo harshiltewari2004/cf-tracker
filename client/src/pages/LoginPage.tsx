@@ -38,7 +38,7 @@ export default function LoginPage() {
   return (
     <form onSubmit={handleSubmit(handleLogin)} className="space-y-4">
       <div>
-        <Input type="email" placeholder="Email" {...register("email")} />
+        <Input type="email" placeholder="Email" autoComplete="email" {...register("email")} />
         {errors.email && (
           <p className="text-sm text-destructive">{errors.email.message}</p>
         )}
@@ -47,6 +47,7 @@ export default function LoginPage() {
         <Input
           type="password"
           placeholder="Password"
+          autoComplete="current-password"
           {...register("password")}
         />
         {errors.password && (
