@@ -26,7 +26,7 @@ if (isError)
 if (!data) return <EmptyState title="Contest not found" description="This contest isn't in your history." />;
   return (
   <div className="mx-auto max-w-3xl space-y-6 p-6">
-    <h1 className="text-2xl font-bold">{data.contestName}</h1>
+    <h1 className="text-2xl font-semibold">{data.contestName}</h1>
     <ContestSummaryCard contest={data} />
     <ContestProblemMatrix problems={data.problems} />
   </div>

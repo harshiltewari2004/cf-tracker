@@ -7,7 +7,7 @@ const SettingsPage = () => {
 
   return (
     <div className="mx-auto max-w-lg space-y-10">
-      <h1 className="text-2xl font-bold">Settings</h1>
+      <h1 className="text-2xl font-semibold">Settings</h1>
       <HandleChangeForm />
       <div className="space-y-3">
         <h2 className="text-lg font-semibold">Account</h2>
