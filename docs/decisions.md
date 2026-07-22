@@ -1,5 +1,22 @@
 # Decisions log
 
+Every non-obvious design choice in CF Tracker, logged at commit time with the
+alternative that lost and the reason it lost. The eight locked docs (`01`–`08`) say
+what the system *should* be; this file says what happened when the build met reality,
+and why each divergence was accepted rather than drifted into.
+
+**Format.** `## ` for a session or piece, `### ` for an individual decision.
+Decisions from Piece 5 onward carry stable `D-Pxx-x` identifiers and are referenced by
+ID from handoffs and commit messages. Entries before Piece 5 predate the ID scheme and
+are addressed by heading. Some early entries carry no date — they were written before
+the dating convention settled and dates have not been backfilled rather than invented.
+
+**Rule.** The entry is part of the diff, not a follow-up to it. If the rejected
+alternative can't be named, the decision isn't finished.
+
+Open items are consolidated in the ledger at the end of this file.
+
+
 ## 2026-05-13 — Deploy target
 - Chose **Render** over Railway. Render free tier sufficient for MVP.
 - Frontend on Vercel.
@@ -19,7 +36,7 @@
 - Acceptable for MVP. Revisit if it impacts demo.
 
 ## 2026-06-09 — Handle change wipe policy 
--Handle change wipes user-scoped derived collections before re-ingest; rationale: orphan contamination; catalog collections (Contest/Problem) untouched; non-atomic, empty window acceptable for MVP.
+- Handle change wipes user-scoped derived collections before re-ingest; rationale: orphan contamination; catalog collections (Contest/Problem) untouched; non-atomic, empty window acceptable for MVP.
 
 ## 2026-06-10 — Rate limiter trust proxy (deferred to deploy)
 - express-rate-limit keys clients by IP. On Render (behind a proxy), the real
@@ -107,7 +124,9 @@ idempotent, via the `(user, cfContestId, problemIndex)` unique index. Mirrors th
 refresh leaving it alone prevents resurrecting the onboarding ingest banner on
 every cron run.
 
-### OPEN — zero/low-data promotion guard  ← still owed, decide before ingestWorker
+### RESOLVED — zero/low-data promotion guard
+**Status: CLOSED 2026-06-14** by the catalog-miss skip guard (Door A) below.
+Original text kept for the reasoning trail; the DECISION PENDING line no longer applies.
 A run currently promotes the cursor + marks complete regardless of how many
 submissions were skipped. Empty-catalog case is now moot (catalog seeded), but
 catalog STALENESS (new contest's problems not yet seeded) can still cause
@@ -197,7 +216,8 @@ an explicit doc unlock before implementation.
 - Degraded runs fail fast via dead-letter alert rather than silently corrupting downstream
   gap/reliability data.
   
-### 17-06-26
+## 2026-06-17 - Contest catalog seeding rules
+
   1. Contest catalog stores Div2 only; combined rounds count as Div2.
 
 The catalog persists only Div2 rounds. Combined "Div. 1 + Div. 2" rounds are stored as Div2; Div1/Div3/Educational are classified (to avoid mislabeling) but not stored; Div4/Global are skipped entirely.
@@ -347,8 +367,8 @@ an oversight. Kept over `=== null || === undefined` for readability per 08
 - Stale rows: recalculate only upserts keys present in current run. If a benchmark
   version drops a (topic,bucket), the old TopicBucketScore row lingers with stale
   numbers. Acceptable for MVP (keys rarely disappear). Revisit if it surfaces.
-- smoke-ingest@local.test source handle not yet verified — confirm which CF handle
-  the 398 rows describe.
+- smoke-ingest@local.test source handle: CLOSED (moot — dev DB cleaned to a single
+  user/profile during P13; the 398-row snapshot no longer has a live referent).
 
   ## DailyPlanEngine — cold-start weakness signal (Phase 3, Piece 3)
 
@@ -640,11 +660,10 @@ Client constants exception: path literals consumed by exactly one module may sta
 
 Guard architecture: separate ProtectedRoute / GuestRoute / RootRedirect components (pathless parent routes), not guard-in-layout, not a requireAuth prop. Bootstrap checkAuth fires once in App.tsx; guards are pure readers. Per 08 §15 boring-code tiebreak.
 
-Interceptor constants exception: path literals consumed by exactly one module stay co-located (EXPECTED_401_PATHS in client.ts). lib/constants.ts remains home for anything shared by 2+ modules.
 
 Rename: AUTH_PATHS/isAuthAttempt → EXPECTED_401_PATHS/isExpected401; /api/auth/me added — 401 there is a normal answer, not session expiry.
 
-sonner.tsx: next-themes removed (Next.js-only dep, stack locked); static theme="light". (Skip if your generated file never had it — tell me.)
+sonner.tsx: next-themes removed (Next.js-only dep, stack locked); static theme="light".
 
 baseUrl regression note: shadcn init re-adds baseUrl; removed again, paths now self-relative. Watch on any future shadcn add.
 
@@ -811,7 +830,7 @@ blocking.
   never matches if crossed.
 
 ### Carried forward
-- Production signup smoke test on Render: STILL pending.
+- Production signup smoke test on Render: CLOSED (confirmed in the Phase 6 session, 2026-07-10; the 07 stranger-marker is satisfied).
 - weaknessController ?top param check.
 - v1.5: mid-ingest reload loses banner; 0/6 reliability bars render invisible.
 - v2: gate app.listen on Mongo connection.
@@ -987,7 +1006,7 @@ contests, so Div3/Educational/combined rounds are not tracked at all.
 Observed: Round 1100 (Spectral::Cup combined, rated) absent — rating
 chain jumps 719→719 across it. Catalog-classification question deferred.
 
-D-P11-1 — GapImpactList descoped; feedback endpoint stays deferred.
+### D-P11-1 — GapImpactList descoped; feedback endpoint stays deferred.
 05 §3.5 wants "which TopicBucketScores were updated" per contest. No
 per-contest delta model exists (TopicBucketScore stores current state).
 Client-side re-derivation from populated tags was rejected: attribution
@@ -997,13 +1016,13 @@ a component drifts silently when v2 weighted attribution lands (02 scope
 phasing). Same single-source principle as KEY_SEP promotion and D-P8-1.
 ContestDetailPage ships 3 of 4 spec'd components — 05 §3.5 divergence.
 
-D-P11-2 — getContestDetail populates problem (name rating url) on the
+### D-P11-2 — getContestDetail populates problem (name rating url) on the
 read path, mirroring planService.getTodaysPlan (P7/P8 seam). tags
 excluded from projection so the client cannot re-derive attribution
 (reinforces D-P11-1). Projection audit paid on both queries: positive
 .select(), __v/timestamps/user no longer serialized.
 
-D-P11-3 — ContestProblemMatrix renders problems[] as a variable-length
+### D-P11-3 — ContestProblemMatrix renders problems[] as a variable-length
 row list in served (catalog) order; raw problemIndex is display truth
 (C1/C2/A2 shown as-is). A2→A canonicalization applies to reliability
 math only (isDiv2A/B flags), per 02 §3. Hardcoded A/B/C/D grid falsified
@@ -1058,12 +1077,183 @@ isDiv2A/B absent from the file entirely (D-P11-3); `formatTime` duplicated
 locally from ContestSummaryCard (2nd copy — promote to lib on 3rd use,
 rule-of-three).
 
-D-P13-3 — completion-side blanket invalidateQueries() lives in useIngestStatus, serving onboarding and handle-change with one mechanism.
-D-P13-4 — DeleteAccountSection deferred (backend exists; UI is v1.5-adjacent breadth).
-D-P13-5 — handle change doesn't cancel in-flight ingest jobs (tourist incident: FLUSHDB + zombie-job repair; wipe-integrity scare resolved as diagnostic error, not leak). v2 alongside BullMQ repeatable-jobs.
+## Piece 13 — ErrorBoundary + SettingsPage (Phase 7)
+
+### D-P13-1 — ErrorBoundary is a class component: the single 08 §5 exception
+**Decision:** `ErrorBoundary` in `main.tsx` is a React **class** component wrapping
+`<App />`. This is a deliberate, one-off exception to 08 §5 ("Functional components
+only. No class components.").
+
+**Rationale:** React's error-recovery phase has no hook equivalent —
+`getDerivedStateFromError` and `componentDidCatch` are class-only APIs with no
+functional counterpart. The convention is broken because the platform offers no
+conforming alternative, not because a class is preferred here. Logged rather than
+drifted, so the exception stays legible *as* an exception.
+
+**Scope:** catches render errors in the provider stack **above** `RouterProvider` —
+the slice no route boundary can structurally reach. Concrete case: the
+`useAuthStore((s) => s.checkAuth)` selector, which runs during `App`'s own render.
+
+### D-P13-2 — Two-net boundary architecture (router errorElement + class root)
+**Decision:** Two boundaries, not one. A functional `RouteErrorFallback` wired to a
+pathless root route's `errorElement` in `router.tsx`, **plus** the D-P13-1 class
+boundary at app root.
+
+**Rationale — found by teeth-check, not by design.** A throw planted in
+`DashboardPage` never reached the `main.tsx` boundary. React Router 7.x applies the
+**nearest-ancestor rule**: a render error goes to the first boundary encountered
+walking *upward* from the crash site, and the router's own boundary sits closer to
+every route-rendered component than the app-root class does. A single class boundary
+would therefore have been dead code across ~99% of the render surface — present,
+untested, and silently never firing.
+
+**Division of responsibility:**
+- Router `errorElement` — everything rendered inside `RouterProvider` (all routes).
+- Class boundary — the provider stack above it.
+
+**Interview line:** *"Route errors go to the router's nearest errorElement; the
+app-root class boundary covers the provider stack above the router, which the router
+structurally cannot protect."*
+
+**Method note:** the boundary was verified by deliberately planting a throw and
+predicting the fallback before reloading. A boundary that has never fired is a
+hypothesis, not a safety net. (Dev-mode wrinkle: Vite's red overlay renders on top of
+the fallback and does not exist in production builds.)
+
+### D-P13-3 — completion-side blanket invalidateQueries() lives in useIngestStatus, serving onboarding and handle-change with one mechanism.
+### D-P13-4 — DeleteAccountSection deferred (backend exists; UI is v1.5-adjacent breadth).
+### D-P13-5 — handle change doesn't cancel in-flight ingest jobs (tourist incident: FLUSHDB + zombie-job repair; wipe-integrity scare resolved as diagnostic error, not leak). v2 alongside BullMQ repeatable-jobs.
 v1.5 item: same-handle precheck + clearer 409 copy (three bites in one session).
 
 
-#D-P14-1 — Page transitions are enter-only (Option A), not enter+exit. The data router's <Outlet /> swaps synchronously, so exit animations require useOutlet() + AnimatePresence mode="wait", which serializes transitions and imposes a ~350ms floor on every navigation. Rejected as a latency regression on a daily-use dashboard per 05 §8 ("sparingly — transitions, not decoration"). Enter-only fully expresses the handoff spec (fade + 8px drift, 200ms, cubic-bezier(0.16, 1, 0.3, 1)).
+## Piece 14 — Phase 7 breadth + polish
 
-D-P14-2 — Brand indigo is scoped to chrome and progress, never to data. Color already carries meaning in this app: red/green for outcomes (rating deltas, reliability verdicts), per-topic pastels for topic identity. Introducing a fifth saturated color on data surfaces would make users read indigo as an outcome polarity it doesn't have. Indigo is therefore limited to brand mark, active nav, focus rings, and progress fills — progress being amount-not-verdict, the one data-adjacent surface with no good/bad axis. Amber was replaced by indigo on below-target reliability bars because amber implies warning, and partial progress toward a 6-contest window is not a warning state.
+> **Numbering note.** P14 spans two working sessions. D-P14-1 and D-P14-2 were
+> assigned first (styling/motion session) and are cited in the P14 handoff, so they
+> keep their IDs. D-P14-3 to D-P14-5 cover the *earlier* lazy-load/mobile session and
+> were backfilled 2026-07-22. IDs are assignment-order, not chronological.
+
+### D-P14-1 — Page transitions are enter-only (Option A), not enter+exit. The data router's <Outlet /> swaps synchronously, so exit animations require useOutlet() + AnimatePresence mode="wait", which serializes transitions and imposes a ~350ms floor on every navigation. Rejected as a latency regression on a daily-use dashboard per 05 §8 ("sparingly — transitions, not decoration"). Enter-only fully expresses the handoff spec (fade + 8px drift, 200ms, cubic-bezier(0.16, 1, 0.3, 1)).
+
+### D-P14-2 — Brand indigo is scoped to chrome and progress, never to data. Color already carries meaning in this app: red/green for outcomes (rating deltas, reliability verdicts), per-topic pastels for topic identity. Introducing a fifth saturated color on data surfaces would make users read indigo as an outcome polarity it doesn't have. Indigo is therefore limited to brand mark, active nav, focus rings, and progress fills — progress being amount-not-verdict, the one data-adjacent surface with no good/bad axis. Amber was replaced by indigo on below-target reliability bars because amber implies warning, and partial progress toward a 6-contest window is not a warning state.
+
+
+### D-P14-3 — Generic Suspense fallback, shape-matched React Query states
+**Decision:** `<Suspense fallback={<LoadingState />}>` — the existing Phase 4 spinner
+— for both lazy routes. Content-shaped skeletons live *inside* pages, keyed off React
+Query `isLoading`, and were built separately across 9 surfaces.
+
+**Rationale:** two loading phases exist and they are not the same wait.
+
+| Phase | What's loading | Owner | Duration |
+|---|---|---|---|
+| 1 | The route's JS chunk | `React.lazy` + `<Suspense>` | ~50–200ms, once per session (browser caches it) |
+| 2 | The page's queries | `if (isLoading)` inside the page | Every visit until cache warms |
+
+Shaping the phase-1 fallback buys nothing: it flashes sub-second, once, on *code* that
+has no content shape to match. 05 §9 prescribes a generic loading state for exactly
+this case. The split also meant zero rework when the skeleton sweep landed, because
+the two phases never shared a component.
+
+### D-P14-4 — Suspense boundary sits per-lazy-element in router.tsx
+**Decision:** each lazy route element is individually wrapped in `router.tsx`.
+
+**Rejected — above the router:** the whole app shell (sidebar, topbar) would unmount
+and flash a spinner on every lazy navigation.
+
+**Rejected — inside AppLayout around `<Outlet />`:** works, but routes seven non-lazy
+pages through a boundary they never need, and puts lazy-loading knowledge in a layout
+file that has no business knowing which routes are split.
+
+**Scope guard:** 08 §13 names Settings and ContestDetail *only*; Dashboard, Plan and
+Weakness stay in the main bundle. Bundle creep does not license splitting core routes
+— the criterion is "outside the core flow," not a size target. Result: 601 → 513 kB.
+
+**Hazard:** chunk-name casing works on macOS (case-insensitive FS) and fails on
+Vercel/Linux. `npm run build` locally before every push.
+
+### D-P14-5 — NAV_ITEMS is a shared constant; BottomNav below md
+**Decision:** nav destinations extracted to a single constant array in
+`lib/constants.ts`; `Sidebar` (≥md) and `BottomNav` (<md) both render from it.
+
+**Rationale:** two components rendering the same five destinations from two hardcoded
+lists is a silent-drift seam — adding a page updates one and not the other, with no
+compiler signal. Two consumers is precisely the threshold at which `lib/constants.ts`
+is the home, per the interceptor-constants exception (which scopes *single*-consumer
+literals to their own module).
+
+**Hazard logged:** the `hidden md:block` wrapper must surround the sidebar **only** —
+wrapping the parent hides all content at mobile widths.
+
+---
+
+## 2026-07-22 — Diagnostic note: transient network outage (no action taken)
+
+Not a decision; recorded because the **signature** is reusable. During the P14 session
+`/api/auth/me` returned 401 twice and 500 once. Pino showed `ENOTFOUND` against the
+Upstash host **and** the Atlas host, plus `EHOSTUNREACH`, inside the same window.
+
+**Rule:** two unrelated external hostnames failing DNS simultaneously means the fault
+is the local network link, not either service. One service failing → suspect the
+service. Everything failing → suspect your own link.
+
+System behaved exactly to 04 §11: drivers auto-reconnected (Redis 10:38, Mongo
+10:58:01), nothing crashed, and the one in-flight request failed *loudly* as a 500
+carrying `userId` rather than silently. No code change.
+
+**Real finding surfaced in the noise:** Mongoose deprecation — `new: true` on
+`findOneAndUpdate` should become `returnDocument: 'after'`. Carried to the open ledger.
+
+
+---
+
+# Open items ledger
+
+Single home for everything unresolved. Previously these were scattered inline as
+`PENDING` / `TODO` markers, several of which went stale after later sessions closed
+them — an open marker that is actually done makes the whole log untrustworthy. New
+open items get added here **and** referenced from their decision entry, not duplicated.
+
+## Verify — invariant-adjacent (highest value)
+
+| Item | Origin | Why it matters |
+|---|---|---|
+| Confirm no code path writes a VIRTUAL row into `ContestProblemResult` | GapEngine entry, Phase 3 | GapEngine reads `ContestProblemResult` with **no** `participantType` filter, relying on the collection being CONTESTANT-only *by construction*. If any path breaks that, virtual fails silently enter `contestFails` — a hot-invariant violation with no error. The contest write path has since been built; the check was never run |
+| Does `runDailyRefresh` update `CFProfile.currentRating` / `rank` from `user.info`? | `TODO(harshil)`, Phase 3 | If rating is onboarding-write-only it goes stale, and stale `currentRating` shifts the whole stretch zone `[r, r+200]`. Live symptom worth checking: dashboard served three 800-rated plan problems against contest ranks of 1130 / 1410 |
+| Redis cache invalidation inside `BenchmarkEngine.refresh` | Phase 3 "Still PENDING" | Deferred until "GapEngine's read path lands." It has landed. Either the invalidation was wired and this line is stale, or the benchmark cache survives a weekly refresh with a 7-day TTL |
+
+## Known divergences, not blocking
+
+| Item | Status |
+|---|---|
+| `GET /api/weakness?top=N` appears to ignore the param server-side | Open. Not blocking — D-P7-4 slices client-side — but the endpoint silently fails to honour its own query param |
+| Top-gaps ties: every untouched (topic, bucket) scores `base_gap` exactly 1.0, so the dashboard's top-3 has many tied rows and no defined tiebreak | Open. `TopicGapList` already solves this for the Weakness page via the D-P9-5 deficit tiebreak; the dashboard card does not. Can surface a gap that is real but outside the stretch zone and therefore not actionable. v1.5: tiebreak on stretch-zone proximity |
+| Mongoose `new: true` → `returnDocument: 'after'` | Open. Deprecation warning, ~5 min, next backend touch |
+| Prettier config still on defaults vs 08 §11 (`singleQuote`, `trailingComma: es5`, `printWidth: 100`) | Open since Phase 2 |
+| Upstash Redis region — Mumbai vs Oregon colocation | Open since Phase 3 |
+| Real-device walk on the production URL | Open. DevTools 375px verified; phone check moved to prod (correct origins give the full flow, strictly more than `--host`) |
+
+## Deferred by scope
+
+**v1.5** — `GapImpactList` (D-P11-1) · `UpsolveAddedList` (D-P12-1) · `GapHeatmap`
+restyle (D-P9-8) · `DeleteAccountSection` (D-P13-4) · same-handle precheck + clearer
+409 copy · mid-ingest reload loses the banner (D-P6-4) · 0/6 reliability bars render
+invisible · dedicated mobile heatmap (D-P9-7) · `LazyMotion` bundle trim (Framer is
+~122 kB of 636) · replacement audit-trail UI (D-P8-2).
+
+**v2** — in-flight ingest job cancellation (D-P13-5) · BullMQ repeatable jobs replacing
+`node-cron` (Render free tier sleeps) · auto-redrive for catalog-missed submissions
+(needs a 17th collection, requires doc unlock) · old benchmark-version pruning ·
+resumable mid-scan checkpointing · `bulkWrite` batching in `GapEngine.recalculate` ·
+β tuning · weighted multi-tag attribution · gate `app.listen` on Mongo connection ·
+gap-history model (would unblock `GET /api/contests/:id/feedback` **and**
+progress-over-time charts).
+
+**Phase 8** — one integration test per HTTP entry point asserting its first side-effect.
+
+## Closed
+
+- Zero/low-data promotion guard → resolved by the catalog-miss skip guard (Door A), 2026-06-14
+- Production signup smoke test on Render → confirmed in the Phase 6 session, 2026-07-10
+- `smoke-ingest@local.test` source handle → moot; dev DB cleaned to one user during P13
+- `/api/virtual/*` left unmounted → ruled 2026-07-02, VirtualContestEngine is v1.5 scope
