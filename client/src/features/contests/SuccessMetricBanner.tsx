@@ -7,7 +7,7 @@ export const SuccessMetricBanner = () => {
 
   if (isLoading)
   return (
-    <div className="rounded-lg border bg-white p-4">
+    <div className="rounded-2xl border bg-white p-6 shadow-sm">
       <h2 className="font-semibold">Div 2 Reliability</h2>
       <div className="mt-3 flex flex-col gap-2">
         {Array.from({ length: 2 }).map((_, i) => (
@@ -30,7 +30,7 @@ export const SuccessMetricBanner = () => {
 
   if (windowSize === 0)
     return (
-      <div className="rounded-lg border bg-white p-4">
+      <div className="rounded-2xl border bg-white p-6 shadow-sm">
         <h2 className="font-semibold">Div 2 Reliability</h2>
         <p className="mt-1 text-sm text-slate-500">
           No real Div 2 contests yet. Your reliability window fills as you compete.
@@ -39,7 +39,7 @@ export const SuccessMetricBanner = () => {
     );
 
   return (
-    <div className="rounded-lg border bg-white p-4">
+    <div className="rounded-2xl border bg-white p-6 shadow-sm">
       <div className="flex items-center justify-between">
         <h2 className="font-semibold">Div 2 Reliability</h2>
         <span
@@ -69,11 +69,11 @@ const MetricRow = ({ label, count, windowSize }: MetricRowProps) => (
     <span className="w-4 font-medium">{label}</span>
     <div className="h-2 flex-1 rounded-full bg-slate-100">
       <div
-        className="h-2 rounded-full bg-green-500"
+        className={`h-2 rounded-full ${count >= RELIABILITY_TARGET ? 'bg-green-500' : 'bg-brand'}`}
         style={{ width: `${(Math.min(count, RELIABILITY_TARGET) / RELIABILITY_TARGET) * 100}%` }}
       />
     </div>
-    <span className="w-20 text-right text-slate-500">
+    <span className="w-20 text-right font-mono text-slate-500">
       {count}/{windowSize} · goal {RELIABILITY_TARGET}
     </span>
   </div>

@@ -8,7 +8,7 @@ export const RecentContestsCard = () => {
 
   if (isLoading)
   return (
-    <div className="rounded-lg border bg-white p-4">
+    <div className=" rounded-2xl border bg-white p-6 shadow-sm">
       <h2 className="mb-3 font-semibold">Recent Contests</h2>
       <div className="flex flex-col gap-3">
         {Array.from({ length: 3 }).map((_, i) => (
@@ -23,7 +23,7 @@ export const RecentContestsCard = () => {
   if (isError) return <p className="text-sm text-red-600">Couldn't load contests.</p>;
   if (!contests || contests.length === 0)
     return (
-      <div className="rounded-lg border bg-white p-4">
+      <div className=" rounded-2xl border bg-white p-6 shadow-sm">
         <h2 className="mb-3 font-semibold">Recent Contests</h2>
         <p className="text-sm text-slate-500">No contests yet.</p>
       </div>
@@ -33,7 +33,7 @@ export const RecentContestsCard = () => {
     reliability?.last6Contests.find((c) => c.contestId === cfContestId);
 
   return (
-    <div className="rounded-lg border bg-white p-4">
+    <div className=" rounded-2xl border bg-white p-6 shadow-sm">
       <h2 className="mb-3 font-semibold">Recent Contests</h2>
       <ul className="flex flex-col gap-3">
         {contests.map((contest) => {

@@ -29,7 +29,7 @@ export const ContestTimeline = () => {
     reliability?.last6Contests.find((c) => c.contestId === cfContestId);
 
   return (
-    <div className="rounded-lg border bg-white p-4">
+    <div className=" rounded-2xl border bg-white p-6 shadow-sm">
       <h2 className="mb-1 font-semibold">Contest History</h2>
       <ul className="divide-y">
         {contests.map((contest) => (

@@ -1,3 +1,7 @@
+import type { Transition } from 'framer-motion';
+import { LayoutDashboard, ListTodo, Target, Trophy, Settings } from 'lucide-react';
+
+
 export const QUERY_STALE_TIME_MS = 5 * 60 * 1000;
 export const PASSWORD = {
   MIN_LENGTH: 8,
@@ -46,7 +50,6 @@ export const BUCKET_HEADER_COLORS: Record<string, string> = {
   '3400-3600': '#FF0000',
 };
 
-import { LayoutDashboard, ListTodo, Target, Trophy, Settings } from 'lucide-react';
 
 export const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -55,8 +58,6 @@ export const NAV_ITEMS = [
   { to: '/contests', label: 'Contests', icon: Trophy },
   { to: '/settings', label: 'Settings', icon: Settings },
 ] as const;
-
-import type { Transition } from 'framer-motion';
 
 export const PAGE_TRANSITION = {
   initial: { opacity: 0, y: 8 },

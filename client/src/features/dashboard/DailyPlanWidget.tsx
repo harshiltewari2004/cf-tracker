@@ -6,7 +6,7 @@ export const DailyPlanWidget = () => {
   const { data: plan, isLoading, isError } = useDailyPlan();
 
   if (isLoading)  return (
-    <div className="rounded-lg border bg-white p-4">
+    <div className=" rounded-2xl border bg-white p-6 shadow-sm">
       <h2 className="mb-3 font-semibold">Today's Plan</h2>
       <div className="flex flex-col gap-3">
         {Array.from({ length: 3 }).map((_, i) => (
@@ -21,7 +21,7 @@ export const DailyPlanWidget = () => {
   if (isError) return <p className="text-sm text-red-600">Couldn't load today's plan.</p>;
   if (!plan || plan.problems.length === 0)
     return (
-      <div className="rounded-lg border bg-white p-4">
+      <div className=" rounded-2xl border bg-white p-6 shadow-sm">
         <h2 className="mb-3 font-semibold">Today's Plan</h2>
         <p className="text-sm text-slate-500">No plan for today yet.</p>
       </div>
@@ -29,7 +29,7 @@ export const DailyPlanWidget = () => {
   const solvedCount = plan.problems.filter((p) => p.status === 'solved').length;
 
   return (
-    <div className="rounded-lg border bg-white p-4">
+    <div className=" rounded-2xl border bg-white p-6 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="font-semibold">Today's Plan</h2>
         <span className="text-sm text-slate-500">

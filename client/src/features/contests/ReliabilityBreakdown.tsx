@@ -8,7 +8,7 @@ export const ReliabilityBreakdown = () => {
 
   if (isLoading)
   return (
-    <div className="rounded-lg border bg-white p-4">
+    <div className=" rounded-2xl border bg-white p-6 shadow-sm">
       <h2 className="mb-3 font-semibold">Last 6 Contests</h2>
       <Skeleton className="h-24 w-full" />
     </div>
@@ -21,7 +21,7 @@ export const ReliabilityBreakdown = () => {
   if (last6Contests.length === 0) return null; // banner already explains the empty state
 
   return (
-    <div className="rounded-lg border bg-white p-4">
+    <div className=" rounded-2xl border bg-white p-6 shadow-sm">
       <h2 className="mb-1 font-semibold">Last {last6Contests.length} Contests</h2>
       <p className="mb-3 text-xs text-slate-500">Most recent first · A reliable under 15m · B under 40m</p>
       <div className="overflow-x-auto">

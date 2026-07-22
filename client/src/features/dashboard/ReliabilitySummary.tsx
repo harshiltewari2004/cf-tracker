@@ -6,13 +6,13 @@ const ReliabilityBar = ({ label, count }: { label: string; count: number }) => (
   <div>
     <div className="mb-1 flex justify-between text-sm">
       <span className="font-medium">{label}</span>
-      <span className="text-slate-500">
+      <span className="font-mono text-slate-500">
         {count}/{RELIABILITY_WINDOW} (target {RELIABILITY_TARGET})
       </span>
     </div>
     <div className="h-2 rounded bg-slate-100">
       <div
-        className={`h-2 rounded ${count >= RELIABILITY_TARGET ? 'bg-green-500' : 'bg-amber-400'}`}
+        className={`h-2 rounded ${count >= RELIABILITY_TARGET ? 'bg-green-500' : 'bg-brand'}`}
         style={{ width: `${(count / RELIABILITY_WINDOW) * 100}%` }}
       />
     </div>
@@ -24,7 +24,7 @@ export const ReliabilitySummary = () => {
 
   if (isLoading)
   return (
-    <div className="rounded-lg border bg-white p-4">
+    <div className="rounded-2xl border bg-white p-6">
       <h2 className="mb-3 font-semibold">Reliability</h2>
       <div className="mt-3 flex flex-col gap-4">
         {Array.from({ length: 2 }).map((_, i) => (
@@ -39,7 +39,7 @@ export const ReliabilitySummary = () => {
   if (isError) return <p className="text-sm text-red-600">Couldn't load reliability.</p>;
   if (!data || data.totalReal === 0)
     return (
-      <div className="rounded-lg border bg-white p-4">
+      <div className="rounded-2xl border bg-white p-6">
         <h2 className="mb-3 font-semibold">Reliability</h2>
         <p className="text-sm text-slate-500">
           No real Div 2 contests yet — your record starts with your first round.
@@ -47,7 +47,7 @@ export const ReliabilitySummary = () => {
       </div>
     );
   return (
-    <div className="rounded-lg border bg-white p-4">
+    <div className="rounded-2xl border bg-white p-6">
       <h2 className="mb-3 font-semibold">Reliability</h2>
       <div className="flex flex-col gap-3">
         <ReliabilityBar label="Problem A (<15 min)" count={data.aReliableCount} />

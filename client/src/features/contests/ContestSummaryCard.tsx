@@ -23,7 +23,7 @@ export const ContestSummaryCard = ({ contest }: ContestSummaryCardProps) => {
   ];
 
   return (
-    <div className="rounded-lg border bg-white p-4">
+    <div className=" rounded-2xl border bg-white p-6 shadow-sm">
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {stats.map((s) => (
           <div key={s.label}>

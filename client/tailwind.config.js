@@ -9,6 +9,7 @@ export default {
   	extend: {
 		fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+		 mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
   		borderRadius: {
   			lg: 'var(--radius)',
@@ -18,6 +19,7 @@ export default {
   		colors: {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
+			brand: 'hsl(var(--brand) / <alpha-value>)',
   			card: {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'
