@@ -1064,3 +1064,4 @@ D-P13-5 — handle change doesn't cancel in-flight ingest jobs (tourist incident
 v1.5 item: same-handle precheck + clearer 409 copy (three bites in one session).
 
 
+#D-P14-1 — Page transitions are enter-only (Option A), not enter+exit. The data router's <Outlet /> swaps synchronously, so exit animations require useOutlet() + AnimatePresence mode="wait", which serializes transitions and imposes a ~350ms floor on every navigation. Rejected as a latency regression on a daily-use dashboard per 05 §8 ("sparingly — transitions, not decoration"). Enter-only fully expresses the handoff spec (fade + 8px drift, 200ms, cubic-bezier(0.16, 1, 0.3, 1)).

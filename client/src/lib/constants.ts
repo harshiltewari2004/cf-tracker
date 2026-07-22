@@ -55,3 +55,11 @@ export const NAV_ITEMS = [
   { to: '/contests', label: 'Contests', icon: Trophy },
   { to: '/settings', label: 'Settings', icon: Settings },
 ] as const;
+
+import type { Transition } from 'framer-motion';
+
+export const PAGE_TRANSITION = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] } satisfies Transition,
+};
