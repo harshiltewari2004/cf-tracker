@@ -1257,3 +1257,19 @@ progress-over-time charts).
 - Production signup smoke test on Render → confirmed in the Phase 6 session, 2026-07-10
 - `smoke-ingest@local.test` source handle → moot; dev DB cleaned to one user during P13
 - `/api/virtual/*` left unmounted → ruled 2026-07-02, VirtualContestEngine is v1.5 scope
+
+### D-PA-1 — Contest window verified correct; July symptom was stale test data
+
+Context: Phase 7 end flagged Recent Contests showing 2022–2024 rounds
+with Reliability A 6/6 · B 3/6, while harshil20's latest results were June 2026.
+
+Finding: For harshil20, mongosh sort, GET /api/contests, and
+ReliabilityScore.last6Contests all return the same six contests
+(2234, 2231, 2228, 2220, 2217, 2205). ReliabilityEngine sorts by
+participatedAt desc with limit 6 — correct per 03 §9.
+
+Cause: A 6/6 is impossible for harshil20 (A times 24–31 min, threshold
+<15). The dashboard was showing a stale test profile's data. Those
+profiles were removed before the July 22 re-ingest.
+
+Decision: No code change.
