@@ -2,23 +2,25 @@ import cron from "node-cron";
 
 import logger from "../config/logger.js";
 import { DAILY_REFRESH_CRON, CRON_TIMEZONE } from "../config/constants.js";
-import User from "../models/User.js";
+import CFProfile from "../models/CFProfile.js";
 import { enqueueDailyRefresh } from "../queues/ingestQueue.js";
 
 export const enqueueDailyRefreshJobs = async () => {
   try {
-    const users = await User.find({ coldStartComplete: true })
-      .select("_id")
+    // D-PC-2: refresh everyone whose first ingest finished — including cold-start users,
+    // since new solves are exactly what lets them leave cold start
+    const profiles = await CFProfile.find({ ingestStatus: "complete" })
+      .select("user")
       .lean();
 
-    logger.info({ count: users.length }, "daily refresh:enqueueing jobs");
+    logger.info({ count: profiles.length }, "daily refresh:enqueueing jobs");
 
-    for (const user of users) {
+    for (const profile of profiles) {
       try {
-        await enqueueDailyRefresh({ userId: user._id });
+        await enqueueDailyRefresh({ userId: profile.user });
       } catch (err) {
         logger.error(
-          { err, userId: user._id.toString() },
+          { err, userId: profile.user.toString() },
           "daily refresh:enqueue failed for user",
         );
       }

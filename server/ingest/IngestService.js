@@ -7,6 +7,7 @@ import {
   MONGO_DUPLICATE_KEY_CODE,
   INGEST_SKIP_GUARD_MIN_SUBMISSIONS,
   INGEST_SKIP_GUARD_MAX_MISS_RATIO,
+  COLD_START_SOLVES_REQUIRED,
 } from "../config/constants.js";
 import CFProfile from "../models/CFProfile.js";
 import IngestJob from "../models/IngestJob.js";
@@ -15,6 +16,7 @@ import Submission from "../models/Submission.js";
 import Contest from "../models/Contest.js";
 import ContestResult from "../models/ContestResult.js";
 import ContestProblemResult from "../models/ContestProblemResult.js";
+import User from "../models/User.js";
 import { AppError, DegradedIngestError } from "../utils/errors.js";
 import * as cfApiClient from "./CFApiClient.js";
 import { parseSubmission } from "./SubmissionParser.js";
@@ -299,6 +301,24 @@ const deriveContestResults = async ({
   }
 };
 
+// D-PC-2: "in-system solves" = distinct problems accepted on Codeforces after signup.
+// Counted from ingested data, so no manual click is needed.
+const maybeCompleteColdStart = async (userId, signupDate) => {
+  const user = await User.findById(userId).select("coldStartComplete").lean();
+  if (!user || user.coldStartComplete) return;
+
+  const solvedAfterSignup = await Submission.distinct("problem", {
+    user: userId,
+    verdict: "OK",
+    submittedAt: { $gte: signupDate },
+  });
+
+  if (solvedAfterSignup.length >= COLD_START_SOLVES_REQUIRED) {
+    await User.updateOne({ _id: userId }, { $set: { coldStartComplete: true } });
+    logger.info({ userId, solves: solvedAfterSignup.length }, "cold start complete");
+  }
+};
+
 export const runInitialIngest = async ({ userId, ingestJobId, signupDate }) => {
   const job = await IngestJob.findById(ingestJobId);
   const profile = await CFProfile.findOne({ user: userId });
@@ -336,6 +356,7 @@ export const runInitialIngest = async ({ userId, ingestJobId, signupDate }) => {
 
   await GapEngine.recalculate(userId);
   await ReliabilityEngine.refresh(userId);
+  await maybeCompleteColdStart(userId, profile.createdAt);
 
   if (summary.newestSeenSubmissionId != null) {
     profile.lastIngestedSubmissionId = summary.newestSeenSubmissionId;
@@ -396,6 +417,7 @@ export const runDailyRefresh = async ({ userId, ingestJobId, signupDate }) => {
 
   await GapEngine.recalculate(userId);
   await ReliabilityEngine.refresh(userId);
+  await maybeCompleteColdStart(userId, profile.createdAt);
 
   if (summary.newestSeenSubmissionId !== null) {
     profile.lastIngestedSubmissionId = summary.newestSeenSubmissionId;

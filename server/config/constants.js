@@ -109,3 +109,6 @@ export const USER_NAME = {
 export const LEDGER_TOP_CANDIDATES = 2; // matches 2 gap slots in the daily plan (02 §1)
 export const LEDGER_OUT_OF_ZONE_MIN_GAP = 0.8;
 export const LEDGER_OUT_OF_ZONE_LIMIT = 5;
+
+// 02 §1: cold start ends after this many distinct problems solved after signup (D-PC-2)
+export const COLD_START_SOLVES_REQUIRED = 20;
