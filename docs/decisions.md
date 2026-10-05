@@ -1301,3 +1301,12 @@ top candidates, next in line, out of zone (collapsed). Split bar separates
 base (practice) from penalty (contest). Cut line says "top N by gap", not
 "today's plan" — fallback and dedup can pick lower rows. Verified at 375px.
 GapHeatmap.tsx / buildHeatmapGrid.ts now unused (parked for removal).
+
+D-PC-1 — Invariant tests (Session C)
+
+Extracted scoreContest() from ReliabilityEngine.refresh as a pure function
+so A/B reliability is testable without a DB; behavior unchanged.
+Tests pin: beta 0.4, additive thesis (base 0 + penalty > 0), real clamp,
+over-solve floor, strict "<" at 15/40 min per 01, progress limited by the
+weaker side, all-tags attribution, bucket edges, stretch-zone overlap rule.
+Fixed a vacuous clamp test that could not fail for the reason it claimed.

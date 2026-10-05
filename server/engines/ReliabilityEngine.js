@@ -11,6 +11,23 @@ import {
 export const computeReliabilityProgress = (aReliableCount, bReliableCount) =>
   Math.min(Math.min(aReliableCount, bReliableCount) / RELIABILITY_TARGET, 1);
 
+// Pure: one contest's A/B reliability. 01 §Success metric says "under" 15/40 min → strict <.
+export const scoreContest = (aRow, bRow) => {
+  const solvedA = aRow?.status === "solved";
+  const solvedB = bRow?.status === "solved";
+  const timeA = solvedA ? aRow.firstACTime : null;
+  const timeB = solvedB ? bRow.firstACTime : null;
+
+  return {
+    solvedA,
+    solvedB,
+    timeA,
+    timeB,
+    aReliable: solvedA && timeA < RELIABLE_A_MINUTES,
+    bReliable: solvedB && timeB < RELIABLE_B_MINUTES,
+  };
+};
+
 export const refresh = async (userId) => {
   const contests = await ContestResult.find({ user: userId, isDiv2: true })
     .sort({ participatedAt: -1 })
@@ -41,29 +58,15 @@ export const refresh = async (userId) => {
   let bReliableCount = 0;
 
   for (const contest of contests) {
-    const aRow = aByContest.get(contest.cfContestId);
-    const bRow = bByContest.get(contest.cfContestId);
+    const entry = scoreContest(
+      aByContest.get(contest.cfContestId),
+      bByContest.get(contest.cfContestId),
+    );
 
-    const solvedA = aRow?.status === "solved";
-    const solvedB = bRow?.status === "solved";
-    const timeA = solvedA ? aRow.firstACTime : null;
-    const timeB = solvedB ? bRow.firstACTime : null;
+    if (entry.aReliable) aReliableCount += 1;
+    if (entry.bReliable) bReliableCount += 1;
 
-    const aReliable = solvedA && timeA < RELIABLE_A_MINUTES;
-    const bReliable = solvedB && timeB < RELIABLE_B_MINUTES;
-
-    if (aReliable) aReliableCount += 1;
-    if (bReliable) bReliableCount += 1;
-
-    last6Contests.push({
-      contestId: contest.cfContestId,
-      solvedA,
-      solvedB,
-      timeA,
-      timeB,
-      aReliable,
-      bReliable,
-    });
+    last6Contests.push({ contestId: contest.cfContestId, ...entry });
   }
   const reliabilityProgress = computeReliabilityProgress(
     aReliableCount,
