@@ -5,6 +5,7 @@ import { getTopicBucketRows } from "../utils/bucketUtils.js";
 import ContestProblemResult from "../models/ContestProblemResult.js";
 import BenchmarkTargetCount from "../models/BenchmarkTargetCount.js";
 import TopicBucketScore from "../models/TopicBucketScore.js";
+import BenchmarkCohort from "../models/BenchmarkCohort.js";
 export const computeGap = ({
   solves,
   targetCount,
@@ -74,15 +75,17 @@ const aggregrateContestSignal = async (userId) => {
 };
 
 const aggregrateTargetCounts = async () => {
-  const latest = await BenchmarkTargetCount.findOne()
-    .sort({ cohortVersion: -1 })
-    .select("cohortVersion")
+  // 04 §11 shadow swap: BenchmarkCohort is written LAST, so its existence is the publish.
+  // Half-written target rows from a crashed refresh are never read.
+  const latest = await BenchmarkCohort.findOne()
+    .sort({ version: -1 })
+    .select("version")
     .lean();
 
   if (!latest) return new Map();
 
   const rows = await BenchmarkTargetCount.find({
-    cohortVersion: latest.cohortVersion,
+    cohortVersion: latest.version,
   })
     .select("topic bucket p50")
     .lean();
