@@ -18,7 +18,7 @@ const ingestQueue = new Queue(INGEST_QUEUE_NAME, {
   connection,
   defaultJobOptions: {
     attempts: INGEST_JOB_ATTEMPTS,
-    backoff: { type: "exponential", delay: "INGEST_BACKOFF_DELAY_MS" },
+    backoff: { type: "exponential", delay: INGEST_BACKOFF_DELAY_MS },
     removeOnComplete: { count: INGEST_KEEP_COMPLETED },
   },
 });
