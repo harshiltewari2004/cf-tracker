@@ -1285,3 +1285,10 @@ overlap rule used for the problem search. Also fixes replaceProblem,
 which calls selectGapProblems.
 
 Also: soften D-PA-1 — "almost certainly" a stale test profile.
+
+D-PB-2 — Ledger endpoint shares the plan engine's row query
+
+Added GET /api/weakness/ledger (new; not in 04 §4.3). getInZoneRows() is
+the single query used by both selectGapProblems and getLedger, so the
+ledger cannot disagree with the engine. Sort now tie-breaks by topic,
+bucket so equal gaps order the same way in both.

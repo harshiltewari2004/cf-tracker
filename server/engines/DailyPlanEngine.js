@@ -6,7 +6,12 @@ import {
   STRETCH_ZONE_SPAN,
   COLD_START_TAG_SMOOTHING,
 } from "../config/constants.js";
-import { getStretchZoneBuckets } from "../utils/bucketUtils.js";
+import { getStretchZoneBuckets, getBuckets } from "../utils/bucketUtils.js";
+import {
+  LEDGER_TOP_CANDIDATES,
+  LEDGER_OUT_OF_ZONE_MIN_GAP,
+  LEDGER_OUT_OF_ZONE_LIMIT,
+} from "../config/constants.js";
 import { AppError } from "../utils/errors.js";
 import Submission from "../models/Submission.js";
 
@@ -126,17 +131,25 @@ const selectColdStartProblems = async (userId, rankedTags, { low, high }) => {
   }));
 };
 
-const selectGapProblems = async (userId, { low, high }, count, seendIds) => {
+// Single source of truth for which rows drive selection — used by the plan AND the ledger
+export const getInZoneRows = async (userId, { low, high }) => {
   const inZoneBuckets = getStretchZoneBuckets(low, high);
 
-  // 02 §1: only rows whose bucket is inside the stretch zone may drive selection
+  // 02 §1: only rows whose bucket is inside the stretch zone may drive selection.
+  // topic/bucket tie-breaks make the order deterministic, so plan and ledger agree on ties.
   const rows = await TopicBucketScore.find({
     user: userId,
     bucket: { $in: inZoneBuckets },
   })
-    .select("topic bucket finalGap")
-    .sort({ finalGap: -1 })
+    .select("topic bucket finalGap baseGap penalty solves targetCount contestFails contestOpportunities")
+    .sort({ finalGap: -1, topic: 1, bucket: 1 })
     .lean();
+
+  return { inZoneBuckets, rows };
+};
+
+const selectGapProblems = async (userId, { low, high }, count, seendIds) => {
+  const { inZoneBuckets, rows } = await getInZoneRows(userId, { low, high });
 
   const selected = [];
   const selectedIds = new Set();
@@ -330,4 +343,93 @@ export const replaceProblem = async (userId, problemSubId) => {
     throw new AppError("Plan problem not found", 404);
   }
   return updated;
+};
+
+
+const hasData = (row) => row.targetCount > 0 || row.solves > 0;
+
+const toLedgerEntry = (row, profile) => ({
+  topic: row.topic,
+  bucket: row.bucket,
+  finalGap: row.finalGap,
+  baseGap: row.baseGap,
+  penalty: row.penalty,
+  solves: row.solves,
+  targetCount: row.targetCount,
+  contestFails: row.contestFails,
+  contestOpportunities: row.contestOpportunities,
+  profile,
+});
+
+export const getLedger = async (userId) => {
+  const [user, cfProfile] = await Promise.all([
+    User.findById(userId).select("coldStartComplete").lean(),
+    CFProfile.findOne({ user: userId }).select("currentRating").lean(),
+  ]);
+  if (!user) throw new AppError("User not found", 404);
+  if (!cfProfile || cfProfile.currentRating == null) {
+    throw new AppError("Cannot build ledger: no currentRating", 422);
+  }
+
+  const zone = {
+    low: cfProfile.currentRating,
+    high: cfProfile.currentRating + STRETCH_ZONE_SPAN,
+  };
+  const { inZoneBuckets, rows } = await getInZoneRows(userId, zone);
+
+  // One entry per topic: its highest in-zone row — the row the engine reaches first
+  const seenTopics = new Set();
+  const candidates = [];
+  for (const row of rows) {
+    if (row.finalGap <= 0 || seenTopics.has(row.topic)) continue;
+    seenTopics.add(row.topic);
+    candidates.push(row);
+  }
+
+  // Sparkline data: each topic's gap across every bucket
+  const allRows = await TopicBucketScore.find({ user: userId })
+    .select("topic bucket finalGap baseGap penalty solves targetCount contestFails contestOpportunities")
+    .lean();
+
+  const rowsByTopic = new Map();
+  for (const row of allRows) {
+    if (!rowsByTopic.has(row.topic)) rowsByTopic.set(row.topic, new Map());
+    rowsByTopic.get(row.topic).set(row.bucket, row);
+  }
+
+  const profileFor = (topic) => {
+    const byBucket = rowsByTopic.get(topic) ?? new Map();
+    return getBuckets().map((bucket) => {
+      const row = byBucket.get(bucket);
+      return {
+        bucket,
+        finalGap: row && hasData(row) ? row.finalGap : null,
+        inZone: inZoneBuckets.includes(bucket),
+      };
+    });
+  };
+
+  // Out of zone: each topic's worst gap outside the window — answers "why isn't X in my plan?"
+  const worstOutside = new Map();
+  for (const row of allRows) {
+    if (inZoneBuckets.includes(row.bucket) || !hasData(row)) continue;
+    if (row.finalGap < LEDGER_OUT_OF_ZONE_MIN_GAP) continue;
+    const current = worstOutside.get(row.topic);
+    if (!current || row.finalGap > current.finalGap) worstOutside.set(row.topic, row);
+  }
+  const outOfZone = [...worstOutside.values()]
+    .sort((a, b) => b.finalGap - a.finalGap || a.topic.localeCompare(b.topic))
+    .slice(0, LEDGER_OUT_OF_ZONE_LIMIT)
+    .map((row) => toLedgerEntry(row, profileFor(row.topic)));
+
+  const entries = candidates.map((row) => toLedgerEntry(row, profileFor(row.topic)));
+
+  return {
+    coldStart: !user.coldStartComplete,
+    currentRating: cfProfile.currentRating,
+    zone: { ...zone, buckets: inZoneBuckets },
+    topCandidates: entries.slice(0, LEDGER_TOP_CANDIDATES),
+    nextInLine: entries.slice(LEDGER_TOP_CANDIDATES),
+    outOfZone,
+  };
 };

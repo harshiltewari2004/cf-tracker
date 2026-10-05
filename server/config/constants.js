@@ -104,3 +104,8 @@ export const USER_NAME = {
   MIN_LENGTH: 1,
   MAX_LENGTH: 50,
 };
+
+// Weakness ledger (D-PB-2)
+export const LEDGER_TOP_CANDIDATES = 2; // matches 2 gap slots in the daily plan (02 §1)
+export const LEDGER_OUT_OF_ZONE_MIN_GAP = 0.8;
+export const LEDGER_OUT_OF_ZONE_LIMIT = 5;
