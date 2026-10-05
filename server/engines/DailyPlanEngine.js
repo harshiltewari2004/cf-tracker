@@ -412,6 +412,8 @@ export const getLedger = async (userId) => {
   // Out of zone: each topic's worst gap outside the window — answers "why isn't X in my plan?"
   const worstOutside = new Map();
   for (const row of allRows) {
+    // Skip topics already ranked in-zone — this section explains what the plan CAN'T pick
+    if (seenTopics.has(row.topic)) continue;
     if (inZoneBuckets.includes(row.bucket) || !hasData(row)) continue;
     if (row.finalGap < LEDGER_OUT_OF_ZONE_MIN_GAP) continue;
     const current = worstOutside.get(row.topic);
