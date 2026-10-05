@@ -1292,3 +1292,12 @@ Added GET /api/weakness/ledger (new; not in 04 §4.3). getInZoneRows() is
 the single query used by both selectGapProblems and getLedger, so the
 ledger cannot disagree with the engine. Sort now tie-breaks by topic,
 bucket so equal gaps order the same way in both.
+
+D-PB-3 — Gap ledger replaces the heatmap on /weakness
+
+Supersedes D-P9-8's "Weakness scan" grid. Grid was ~40% empty cells and
+showed 8 buckets while the plan reads 1–2. The ledger mirrors selection:
+top candidates, next in line, out of zone (collapsed). Split bar separates
+base (practice) from penalty (contest). Cut line says "top N by gap", not
+"today's plan" — fallback and dedup can pick lower rows. Verified at 375px.
+GapHeatmap.tsx / buildHeatmapGrid.ts now unused (parked for removal).

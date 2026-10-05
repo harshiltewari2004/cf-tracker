@@ -126,3 +126,31 @@ export interface ContestDetail {
   participatedAt: string;
   problems: ContestProblemDetail[];
 }
+
+export interface LedgerProfilePoint {
+  bucket: string;
+  finalGap: number | null;
+  inZone: boolean;
+}
+
+export interface LedgerEntry {
+  topic: string;
+  bucket: string;
+  finalGap: number;
+  baseGap: number;
+  penalty: number;
+  solves: number;
+  targetCount: number;
+  contestFails: number;
+  contestOpportunities: number;
+  profile: LedgerProfilePoint[];
+}
+
+export interface WeaknessLedger {
+  coldStart: boolean;
+  currentRating: number;
+  zone: { low: number; high: number; buckets: string[] };
+  topCandidates: LedgerEntry[];
+  nextInLine: LedgerEntry[];
+  outOfZone: LedgerEntry[];
+}

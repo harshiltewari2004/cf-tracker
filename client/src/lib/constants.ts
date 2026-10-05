@@ -64,3 +64,8 @@ export const PAGE_TRANSITION = {
   animate: { opacity: 1, y: 0 },
   transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] } satisfies Transition,
 };
+
+// Weakness ledger (D-PB-3)
+export const COLD_START_SOLVES = 20; // 02 §1 cold start threshold
+export const LEDGER_SPARK_WIDTH = 56;
+export const LEDGER_SPARK_HEIGHT = 16;
