@@ -129,7 +129,11 @@ const selectColdStartProblems = async (userId, rankedTags, { low, high }) => {
 const selectGapProblems = async (userId, { low, high }, count, seendIds) => {
   const inZoneBuckets = getStretchZoneBuckets(low, high);
 
-  const rows = await TopicBucketScore.find({ user: userId })
+  // 02 §1: only rows whose bucket is inside the stretch zone may drive selection
+  const rows = await TopicBucketScore.find({
+    user: userId,
+    bucket: { $in: inZoneBuckets },
+  })
     .select("topic bucket finalGap")
     .sort({ finalGap: -1 })
     .lean();

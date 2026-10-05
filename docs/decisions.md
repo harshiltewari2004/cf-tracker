@@ -1273,3 +1273,15 @@ Cause: A 6/6 is impossible for harshil20 (A times 24–31 min, threshold
 profiles were removed before the July 22 re-ingest.
 
 Decision: No code change.
+
+D-PB-1 — Gap selection restricted to in-zone rows
+
+Found: selectGapProblems read TopicBucketScore rows from all buckets
+and used only row.topic, so out-of-zone gaps (e.g. bitmasks@1800-2000)
+drove in-zone picks. Contradicts 02 §1.
+
+Fix: query filters rows to getStretchZoneBuckets(low, high) — the same
+overlap rule used for the problem search. Also fixes replaceProblem,
+which calls selectGapProblems.
+
+Also: soften D-PA-1 — "almost certainly" a stale test profile.
