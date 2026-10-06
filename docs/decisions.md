@@ -1322,3 +1322,13 @@ GapEngine now reads the active version from BenchmarkCohort (shadow swap,
 Follow-up: daily refresh now selects profiles with ingestCompletedAt set,
 not ingestStatus "complete". A single stalled refresh had marked the profile
 "failed", silently dropping the user from every future refresh.
+
+D-PC-5 — contestOpportunities and contestFails counted per contest
+
+Was: one count per ContestProblemResult row, so a topic tagged on both A
+and B in one contest got 2 opportunities for 1 contest — understating the
+penalty on the most common tags. Now: each contest counts once per
+(topic, bucket); a fail means "failed it in that contest". This keeps
+fails/opportunities in [0,1] so the penalty never exceeds beta, matching
+01 ("at maximum failure rate, contest signal contributes 0.4").
+Logic extracted as pure tallyContestSignal() with 6 tests.

@@ -47,31 +47,44 @@ const aggregateSolves = async (userId) => {
   return solvesByKey;
 };
 
-const aggregrateContestSignal = async (userId) => {
-  const rows = await ContestProblemResult.find({ user: userId })
-    .populate("problem", "rating tags")
-    .lean();
+// 01 §Definitions: opportunities = CONTESTS where (topic, bucket) appeared as A/B.
+// If A and B share a tag in one contest, that contest counts once, not twice.
+// Fails use the same unit ("failed it in that contest"), so fails/opportunities
+// stays in [0, 1] and the penalty never exceeds beta (D-PC-5).
+export const tallyContestSignal = (rows) => {
+  const oppContests = new Map();
+  const failContests = new Map();
 
-  const failsByKey = new Map();
-  const opportunitiesByKey = new Map();
+  const addContest = (map, key, contestId) => {
+    if (!map.has(key)) map.set(key, new Set());
+    map.get(key).add(contestId);
+  };
 
   for (const row of rows) {
     if (!row.isDiv2A && !row.isDiv2B) continue;
     if (!row.problem) continue;
 
-    const tbRows = getTopicBucketRows(row.problem);
-
-    for (const { topic, bucket } of tbRows) {
-      const key = `${topic}|${bucket}`;
-
-      opportunitiesByKey.set(key, (opportunitiesByKey.get(key) ?? 0) + 1);
-
-      if (row.status === "failed") {
-        failsByKey.set(key, (failsByKey.get(key) ?? 0) + 1);
-      }
+    for (const { topic, bucket } of getTopicBucketRows(row.problem)) {
+      const key = `${topic}${KEY_SEP}${bucket}`;
+      addContest(oppContests, key, row.cfContestId);
+      if (row.status === "failed") addContest(failContests, key, row.cfContestId);
     }
   }
-  return { failsByKey, opportunitiesByKey };
+
+  const toCounts = (map) => new Map([...map].map(([key, ids]) => [key, ids.size]));
+  return {
+    failsByKey: toCounts(failContests),
+    opportunitiesByKey: toCounts(oppContests),
+  };
+};
+
+const aggregrateContestSignal = async (userId) => {
+  const rows = await ContestProblemResult.find({ user: userId })
+    .select("cfContestId isDiv2A isDiv2B status problem")
+    .populate("problem", "rating tags")
+    .lean();
+
+  return tallyContestSignal(rows);
 };
 
 const aggregrateTargetCounts = async () => {

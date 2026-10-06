@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 
-import { computeGap } from "../../../engines/GapEngine.js";
-import { GAP_BETA } from "../../../config/constants.js";
+import { computeGap, tallyContestSignal } from "../../../engines/GapEngine.js";
+import { GAP_BETA, KEY_SEP } from "../../../config/constants.js";
 
 describe("GapEngine", () => {
   describe("computeGap", () => {
@@ -97,6 +97,64 @@ describe("GapEngine", () => {
       expect(baseGap).toBe(0.5);
       expect(penalty).toBeCloseTo(GAP_BETA * 0.5);
       expect(finalGap).toBeCloseTo(0.5 + GAP_BETA * 0.5);
+    });
+  });
+
+    describe("tallyContestSignal", () => {
+    const row = (cfContestId, { a = false, b = false, status = "solved", tags = ["math"] } = {}) => ({
+      cfContestId,
+      isDiv2A: a,
+      isDiv2B: b,
+      status,
+      problem: { rating: 800, tags },
+    });
+    const key = (topic) => `${topic}${KEY_SEP}800-1000`;
+
+    it("counts a contest once when A and B share a tag", () => {
+      const { opportunitiesByKey } = tallyContestSignal([
+        row(1, { a: true }),
+        row(1, { b: true }),
+      ]);
+      expect(opportunitiesByKey.get(key("math"))).toBe(1);
+    });
+
+    it("counts separate contests separately", () => {
+      const { opportunitiesByKey } = tallyContestSignal([
+        row(1, { a: true }),
+        row(2, { a: true }),
+      ]);
+      expect(opportunitiesByKey.get(key("math"))).toBe(2);
+    });
+
+    it("never lets fails exceed opportunities when A and B both fail in one contest", () => {
+      const { failsByKey, opportunitiesByKey } = tallyContestSignal([
+        row(1, { a: true, status: "failed" }),
+        row(1, { b: true, status: "failed" }),
+      ]);
+      expect(failsByKey.get(key("math"))).toBe(1);
+      expect(opportunitiesByKey.get(key("math"))).toBe(1);
+    });
+
+    it("counts a contest as failed if either A or B was failed", () => {
+      const { failsByKey, opportunitiesByKey } = tallyContestSignal([
+        row(1, { a: true, status: "solved" }),
+        row(1, { b: true, status: "failed" }),
+      ]);
+      expect(failsByKey.get(key("math"))).toBe(1);
+      expect(opportunitiesByKey.get(key("math"))).toBe(1);
+    });
+
+    it("ignores problems that are not A or B", () => {
+      const { opportunitiesByKey } = tallyContestSignal([row(1)]);
+      expect(opportunitiesByKey.size).toBe(0);
+    });
+
+    it("credits every tag of a problem (all-tags attribution, 01)", () => {
+      const { opportunitiesByKey } = tallyContestSignal([
+        row(1, { a: true, tags: ["math", "greedy"] }),
+      ]);
+      expect(opportunitiesByKey.get(key("math"))).toBe(1);
+      expect(opportunitiesByKey.get(key("greedy"))).toBe(1);
     });
   });
 });
