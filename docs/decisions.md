@@ -1310,3 +1310,11 @@ Tests pin: beta 0.4, additive thesis (base 0 + penalty > 0), real clamp,
 over-solve floor, strict "<" at 15/40 min per 01, progress limited by the
 weaker side, all-tags attribution, bucket edges, stretch-zone overlap rule.
 Fixed a vacuous clamp test that could not fail for the reason it claimed.
+
+D-PC-4 — Benchmark manually refreshed
+
+v2 written Oct 2026: N=797, IN 1300–1500, no fallback, ~1h50m local run.
+~6 candidates skipped on CF timeouts (by design). Render free tier can't
+run the scan, so a manual local run is the documented refresh path.
+GapEngine now reads the active version from BenchmarkCohort (shadow swap,
+04 §11), so a crashed refresh can't publish partial targets.

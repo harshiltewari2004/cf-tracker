@@ -15,7 +15,7 @@ const benchmarkTargetCountSchema = new mongoose.Schema(
 );
 
 benchmarkTargetCountSchema.index(
-  { topic: 1, bucket: 1, cohortVersion: 1 },
+  { cohortVersion: 1, topic: 1, bucket: 1 },
   { unique: true },
 );
 
