@@ -8,8 +8,10 @@ and why each divergence was accepted rather than drifted into.
 **Format.** `## ` for a session or piece, `### ` for an individual decision.
 Decisions from Piece 5 onward carry stable `D-Pxx-x` identifiers and are referenced by
 ID from handoffs and commit messages. Entries before Piece 5 predate the ID scheme and
-are addressed by heading. Some early entries carry no date — they were written before
-the dating convention settled and dates have not been backfilled rather than invented.
+are addressed by heading. Post-ship sessions (Oct 2026) use `D-PA-x`, `D-PB-x` and
+`D-PC-x` for Sessions A, B and C. Some early entries carry no date — they were written
+before the dating convention settled and dates have not been backfilled rather than
+invented.
 
 **Rule.** The entry is part of the diff, not a follow-up to it. If the rejected
 alternative can't be named, the decision isn't finished.
@@ -331,6 +333,8 @@ unique index on (user, cfContestId, problemIndex) per 03_data_models.md §10, so
 one row per problem is DB-enforced — no duplicates can exist. Dedup would be
 redundant. Contrast with Submission, which has no such uniqueness (hence solves
 needs dedup).
+**Superseded by D-PC-5:** one row per problem is not one row per *contest* — A and
+B sharing a tag in one contest counted twice. Now deduped per contest.
 
 ### CONTESTANT-only enforced by construction, not by filter
 contestFails/contestOpportunities read ContestProblemResult with no
@@ -353,6 +357,9 @@ that collection, not via BenchmarkCohort's version pointer. Only computed versio
 have target-count rows, so a held refresh (N<15, per 01 fallback) writes no rows
 and cannot be picked — sidesteps the hold-marker ambiguity. Self-consistent by
 construction.
+**Superseded by D-PC-4:** a *crashed* refresh can leave partial rows at the new
+version, and max(cohortVersion) would read them. GapEngine now reads the active
+version from `BenchmarkCohort`, which is written last.
 
 ### getTopicBucketRows uses `== null` (intentional)
 getTopicBucketRows guards `problem?.rating == null` with loose equality — the
@@ -968,6 +975,8 @@ Claude Design — honest stat line, filled-cell severity, categorical three
 states. Ported by hand as a styling-only session AFTER the Phase 7 polish
 pass, alongside Framer Motion work. CP-friend milestone test moves to that
 session.
+**Superseded by D-PB-3:** the heatmap was replaced by the gap ledger rather than
+restyled.
 
 ## Piece 10 — ContestsPage (Phase 6)
 
@@ -1207,6 +1216,130 @@ carrying `userId` rather than silently. No code change.
 
 ---
 
+## 2026-10 — Post-ship sessions A, B, C
+
+Three scoped sessions after MVP. Scope rule: only these three; anything else spotted
+along the way was parked in the ledger, not built.
+
+### D-PA-1 — Contest window verified correct; July symptom was stale test data
+
+**Context:** Phase 7 end flagged Recent Contests showing 2022–2024 rounds with
+Reliability A 6/6 · B 3/6, while harshil20's latest results were June 2026.
+
+**Finding:** For harshil20, mongosh sort, `GET /api/contests`, and
+`ReliabilityScore.last6Contests` all return the same six contests
+(2234, 2231, 2228, 2220, 2217, 2205). ReliabilityEngine sorts by `participatedAt`
+desc with limit 6 — correct per 03 §9.
+
+**Cause:** A 6/6 is impossible for harshil20 (A times 24–31 min, threshold <15). The
+dashboard was almost certainly showing a stale test profile's data. Those profiles
+were removed before the July 22 re-ingest. Inferred from evidence, not reproduced.
+
+**Decision:** No code change.
+
+### Ops note — production restored after free-tier expiry
+
+Not a decision; recorded because all three failed silently. Atlas auto-paused the
+cluster after inactivity (Sept 1). Upstash deleted the free Redis DB after 14 days
+idle — recreated, `REDIS_URL` updated locally and on Render. Render had stopped
+auto-deploying after D-P10-4, so production ran three-month-old server code —
+redeployed manually. Losing Redis cost nothing: it only held cache-aside copies and
+queue jobs (04 §6); Mongo is the source of truth.
+
+**Rule:** open the live site at least every two weeks, and before sharing the link.
+
+### D-PB-1 — Gap selection restricted to in-zone rows
+
+**Found:** `selectGapProblems` read TopicBucketScore rows from all buckets and used
+only `row.topic`, so out-of-zone gaps (e.g. bitmasks@1800-2000) drove in-zone picks.
+Contradicts 02 §1.
+
+**Fix:** the query filters rows to `getStretchZoneBuckets(low, high)` — the same
+overlap rule used for the problem search. Also fixes `replaceProblem`, which calls
+`selectGapProblems`.
+
+### D-PB-2 — Ledger endpoint shares the plan engine's row query
+
+Added `GET /api/weakness/ledger` (new; not in 04 §4.3). `getInZoneRows()` is the
+single query used by both `selectGapProblems` and `getLedger`, so the ledger cannot
+disagree with the engine. Sort now tie-breaks by topic, bucket so equal gaps order
+the same way in both. Out-of-zone section excludes topics already ranked in-zone —
+it explains what the plan *can't* pick.
+
+### D-PB-3 — Gap ledger replaces the heatmap on /weakness
+
+Supersedes D-P9-8's "Weakness scan" grid. Grid was ~40% empty cells and showed 8
+buckets while the plan reads 1–2. The ledger mirrors selection: top candidates, next
+in line, out of zone (collapsed). Split bar separates base (practice) from penalty
+(contest). Cut line says "top N by gap", not "today's plan" — fallback and dedup can
+pick lower rows. Verified at 375px. `GapHeatmap.tsx` / `buildHeatmapGrid.ts` now
+unused (parked for removal).
+
+### D-PC-1 — Invariant tests (Session C)
+
+Extracted `scoreContest()` from `ReliabilityEngine.refresh` as a pure function so A/B
+reliability is testable without a DB; behavior unchanged. Tests pin: beta 0.4,
+additive thesis (base 0 + penalty > 0), real clamp, over-solve floor, strict "<" at
+15/40 min per 01, progress limited by the weaker side, all-tags attribution, bucket
+edges, stretch-zone overlap rule. Fixed a vacuous clamp test that could not fail for
+the reason it claimed.
+
+### D-PC-2 — Cold start can now end; daily refresh no longer skips everyone
+
+**Found:** nothing ever set `coldStartComplete = true`, and `dailyRefreshJob` only
+synced users with `coldStartComplete: true` (as 04 §8.3 said). Together: no user
+could leave cold start, and no user was ever refreshed after signup.
+
+**Fix:** "in-system solves" (02 §1, 04 §8.2 step 8) = distinct problems accepted on
+CF after signup, counted at the end of every ingest; flips at
+`COLD_START_SOLVES_REQUIRED` (20). Rejected: counting plan problems marked solved in
+the app — depends on a manual click. Supersedes 04 §8.3 step 1.
+
+**Follow-up:** daily refresh now selects profiles with `ingestCompletedAt` set, not
+`ingestStatus: "complete"`. A single stalled refresh had marked the profile
+"failed", silently dropping the user from every future refresh.
+
+**Limit:** on Render free tier the 02:00 cron only fires if the instance is awake.
+
+### D-PC-3 — Stale DB index blocked every benchmark refresh
+
+Model already declared unique (topic, bucket, cohortVersion), but the live DB still
+held the old unique `topic_1_bucket_1` index — Mongoose never drops indexes. So no
+second benchmark version could ever be written. Dropped the stale index; index is now
+unique (cohortVersion, topic, bucket), model matched. Exposed by the first manual
+refresh; no data was written (insert failed on row 0, cohort record never created).
+
+**Lesson:** schema index changes need a manual migration.
+
+### D-PC-4 — Benchmark manually refreshed
+
+v2 written Oct 2026: N=797, IN 1300–1500, no fallback, ~1h50m local run. ~6
+candidates skipped on CF timeouts (by design). Render free tier can't run the scan,
+so a manual local run (`scripts/run-benchmark.js`, cache file moved aside) is the
+documented refresh path. GapEngine now reads the active version from
+`BenchmarkCohort` (shadow swap, 04 §11), so a crashed refresh can't publish partial
+targets.
+
+### D-PC-5 — contestOpportunities and contestFails counted per contest
+
+**Was:** one count per ContestProblemResult row, so a topic tagged on both A and B in
+one contest got 2 opportunities for 1 contest — understating the penalty on the most
+common tags.
+
+**Now:** each contest counts once per (topic, bucket); a fail means "failed it in
+that contest". This keeps fails/opportunities in [0,1] so the penalty never exceeds
+beta, matching 01 ("at maximum failure rate, contest signal contributes 0.4").
+Logic extracted as pure `tallyContestSignal()` with 6 tests. Live effect for
+harshil20: math@800-1000 opportunities 5 → 4.
+
+### D-PC-6 — Ingest retry backoff used a string literal
+
+`ingestQueue` had `delay: "INGEST_BACKOFF_DELAY_MS"` — the constant's *name* in
+quotes, not its value. Retries ignored the 04 §5 schedule (5s → 25s → 125s). Now uses
+the constant. Silent: no error, just wrong.
+
+---
+
 # Open items ledger
 
 Single home for everything unresolved. Previously these were scattered inline as
@@ -1232,14 +1365,21 @@ open items get added here **and** referenced from their decision entry, not dupl
 | Prettier config still on defaults vs 08 §11 (`singleQuote`, `trailingComma: es5`, `printWidth: 100`) | Open since Phase 2 |
 | Upstash Redis region — Mumbai vs Oregon colocation | Open since Phase 3 |
 | Real-device walk on the production URL | Open. DevTools 375px verified; phone check moved to prod (correct origins give the full flow, strictly more than `--host`) |
+| Gap selection searches all in-zone buckets at once, not the row's exact bucket first as the "gap fallback honors per-bucket gap" entry says | Open. Code and log disagree; small impact while the zone spans 1–2 buckets |
+| `totalReal` returns the window size (≤6), not total real Div2 contests (03 §11) | Open. Display-level |
+| Reliability threshold: code, 01, 03 and D-PC-1 tests use strict `<`; project instructions say `≤` | Open. Fix the instructions wording, not the code |
+| Tiny cohort targets (p50 of 1–2) swing gaps to 100% (e.g. hashing@800-1000 after v2) | Open. v2: minimum-target floor |
+| `INGEST_KEEP_FAILED` imported in `ingestQueue`, `removeOnFail` never set | Open. Failed jobs never pruned |
+| Free-tier expiry: Atlas pauses when idle, Upstash deletes free DBs after 14 days, Render sleeps | Accepted. See ops note in post-ship sessions |
 
 ## Deferred by scope
 
-**v1.5** — `GapImpactList` (D-P11-1) · `UpsolveAddedList` (D-P12-1) · `GapHeatmap`
-restyle (D-P9-8) · `DeleteAccountSection` (D-P13-4) · same-handle precheck + clearer
+**v1.5** — `GapImpactList` (D-P11-1) · `UpsolveAddedList` (D-P12-1) ·
+`DeleteAccountSection` (D-P13-4) · same-handle precheck + clearer
 409 copy · mid-ingest reload loses the banner (D-P6-4) · 0/6 reliability bars render
-invisible · dedicated mobile heatmap (D-P9-7) · `LazyMotion` bundle trim (Framer is
-~122 kB of 636) · replacement audit-trail UI (D-P8-2).
+invisible · `LazyMotion` bundle trim (Framer is
+~122 kB of 636) · replacement audit-trail UI (D-P8-2) · dead-code removal
+(`GapHeatmap.tsx`, `buildHeatmapGrid.ts`, `extractContestFails`).
 
 **v2** — in-flight ingest job cancellation (D-P13-5) · BullMQ repeatable jobs replacing
 `node-cron` (Render free tier sleeps) · auto-redrive for catalog-missed submissions
@@ -1257,78 +1397,7 @@ progress-over-time charts).
 - Production signup smoke test on Render → confirmed in the Phase 6 session, 2026-07-10
 - `smoke-ingest@local.test` source handle → moot; dev DB cleaned to one user during P13
 - `/api/virtual/*` left unmounted → ruled 2026-07-02, VirtualContestEngine is v1.5 scope
-
-### D-PA-1 — Contest window verified correct; July symptom was stale test data
-
-Context: Phase 7 end flagged Recent Contests showing 2022–2024 rounds
-with Reliability A 6/6 · B 3/6, while harshil20's latest results were June 2026.
-
-Finding: For harshil20, mongosh sort, GET /api/contests, and
-ReliabilityScore.last6Contests all return the same six contests
-(2234, 2231, 2228, 2220, 2217, 2205). ReliabilityEngine sorts by
-participatedAt desc with limit 6 — correct per 03 §9.
-
-Cause: A 6/6 is impossible for harshil20 (A times 24–31 min, threshold
-<15). The dashboard was showing a stale test profile's data. Those
-profiles were removed before the July 22 re-ingest.
-
-Decision: No code change.
-
-D-PB-1 — Gap selection restricted to in-zone rows
-
-Found: selectGapProblems read TopicBucketScore rows from all buckets
-and used only row.topic, so out-of-zone gaps (e.g. bitmasks@1800-2000)
-drove in-zone picks. Contradicts 02 §1.
-
-Fix: query filters rows to getStretchZoneBuckets(low, high) — the same
-overlap rule used for the problem search. Also fixes replaceProblem,
-which calls selectGapProblems.
-
-Also: soften D-PA-1 — "almost certainly" a stale test profile.
-
-D-PB-2 — Ledger endpoint shares the plan engine's row query
-
-Added GET /api/weakness/ledger (new; not in 04 §4.3). getInZoneRows() is
-the single query used by both selectGapProblems and getLedger, so the
-ledger cannot disagree with the engine. Sort now tie-breaks by topic,
-bucket so equal gaps order the same way in both.
-
-D-PB-3 — Gap ledger replaces the heatmap on /weakness
-
-Supersedes D-P9-8's "Weakness scan" grid. Grid was ~40% empty cells and
-showed 8 buckets while the plan reads 1–2. The ledger mirrors selection:
-top candidates, next in line, out of zone (collapsed). Split bar separates
-base (practice) from penalty (contest). Cut line says "top N by gap", not
-"today's plan" — fallback and dedup can pick lower rows. Verified at 375px.
-GapHeatmap.tsx / buildHeatmapGrid.ts now unused (parked for removal).
-
-D-PC-1 — Invariant tests (Session C)
-
-Extracted scoreContest() from ReliabilityEngine.refresh as a pure function
-so A/B reliability is testable without a DB; behavior unchanged.
-Tests pin: beta 0.4, additive thesis (base 0 + penalty > 0), real clamp,
-over-solve floor, strict "<" at 15/40 min per 01, progress limited by the
-weaker side, all-tags attribution, bucket edges, stretch-zone overlap rule.
-Fixed a vacuous clamp test that could not fail for the reason it claimed.
-
-D-PC-4 — Benchmark manually refreshed
-
-v2 written Oct 2026: N=797, IN 1300–1500, no fallback, ~1h50m local run.
-~6 candidates skipped on CF timeouts (by design). Render free tier can't
-run the scan, so a manual local run is the documented refresh path.
-GapEngine now reads the active version from BenchmarkCohort (shadow swap,
-04 §11), so a crashed refresh can't publish partial targets.
-
-Follow-up: daily refresh now selects profiles with ingestCompletedAt set,
-not ingestStatus "complete". A single stalled refresh had marked the profile
-"failed", silently dropping the user from every future refresh.
-
-D-PC-5 — contestOpportunities and contestFails counted per contest
-
-Was: one count per ContestProblemResult row, so a topic tagged on both A
-and B in one contest got 2 opportunities for 1 contest — understating the
-penalty on the most common tags. Now: each contest counts once per
-(topic, bucket); a fail means "failed it in that contest". This keeps
-fails/opportunities in [0,1] so the penalty never exceeds beta, matching
-01 ("at maximum failure rate, contest signal contributes 0.4").
-Logic extracted as pure tallyContestSignal() with 6 tests.
+- `GapHeatmap` restyle (D-P9-8) and dedicated mobile heatmap (D-P9-7) → superseded by the gap ledger, D-PB-3
+- Contest-window discrepancy (Phase 7 end) → verified correct, D-PA-1
+- Benchmark cron can't refresh / stale since June → D-PC-3 + D-PC-4 (manual local refresh)
+- No user ever leaves cold start or gets a daily refresh → D-PC-2
