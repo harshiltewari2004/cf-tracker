@@ -9,7 +9,8 @@ export const enqueueDailyRefreshJobs = async () => {
   try {
     // D-PC-2: refresh everyone whose first ingest finished — including cold-start users,
     // since new solves are exactly what lets them leave cold start
-    const profiles = await CFProfile.find({ ingestStatus: "complete" })
+    // D-PC-2: "first ingest ever finished" — a later failed refresh must not drop the user forever
+    const profiles = await CFProfile.find({ ingestCompletedAt: { $ne: null } })
       .select("user")
       .lean();
 

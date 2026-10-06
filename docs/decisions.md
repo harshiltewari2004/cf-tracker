@@ -1318,3 +1318,7 @@ v2 written Oct 2026: N=797, IN 1300–1500, no fallback, ~1h50m local run.
 run the scan, so a manual local run is the documented refresh path.
 GapEngine now reads the active version from BenchmarkCohort (shadow swap,
 04 §11), so a crashed refresh can't publish partial targets.
+
+Follow-up: daily refresh now selects profiles with ingestCompletedAt set,
+not ingestStatus "complete". A single stalled refresh had marked the profile
+"failed", silently dropping the user from every future refresh.
