@@ -22,3 +22,5 @@ npm-debug.log*
 # Misc
 *.pemserver/scripts/.cohort-cache*.json
 server/scripts/.cohort-cache*.json
+
+docs/
