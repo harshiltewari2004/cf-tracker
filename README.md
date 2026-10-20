@@ -5,9 +5,7 @@ submission history, measures your skill gaps against a benchmarked peer cohort, 
 daily practice plan to close them — then uses your next real contest as independent evidence of
 whether the practice actually worked.
 
-**Live:** https://cf-tracker-two.vercel.app · **Design docs:** [`docs/`](./docs)
-
-![CF Tracker demo](docs/demo.gif)
+**Live:** https://cf-tracker-two.vercel.app
 
 ---
 
@@ -59,9 +57,6 @@ final_gap = clamp(base_gap + penalty, 0, 1)
 Because the penalty is additive, **a user with 100% practice completion who still fails a topic
 in contests retains a non-zero gap.** You cannot grind your way out of a weakness. Mastery
 requires contest evidence.
-
-Full derivation, including why additive rather than multiplicative and why β = 0.4, is in
-[`docs/01_problem_statement.md`](./docs/01_problem_statement.md).
 
 ### The success metric
 
@@ -137,8 +132,6 @@ but **the same rule is applied when computing cohort medians**, so both sides of
 are inflated identically and the ratio stays unbiased. Only real Codeforces API tags are ever
 used; no informal categories are invented.
 
-Full topology, failure modes, and the queue design: [`docs/04_architecture.md`](./docs/04_architecture.md).
-
 ---
 
 ## What this does and doesn't prove
@@ -188,24 +181,7 @@ any are missing or malformed — no `process.env` access anywhere outside `confi
 
 ## Design docs
 
-The product was specified before it was built. These eight documents were locked before the first
-line of implementation code and treated as authoritative throughout; where the build wanted to
-diverge, the divergence was logged rather than silently applied.
-
-| Doc | Contents |
-|---|---|
-| [`01_problem_statement.md`](./docs/01_problem_statement.md) | Target user, success metric, gap function derivation, cohort filters, validation methodology |
-| [`02_features.md`](./docs/02_features.md) | Five user-facing features, cold-start behavior, upsolve loop |
-| [`03_data_models.md`](./docs/03_data_models.md) | 16 collections, indexes, write pipeline branched by `participantType` |
-| [`04_architecture.md`](./docs/04_architecture.md) | Backend topology, BullMQ, transaction boundaries, failure modes |
-| [`05_pages_and_components.md`](./docs/05_pages_and_components.md) | Routes, page breakdown, state ownership |
-| [`06_folder_structure.md`](./docs/06_folder_structure.md) | Client and server organization, naming |
-| [`07_timeline_and_milestones.md`](./docs/07_timeline_and_milestones.md) | Phase order, validation gates, risk markers |
-| [`08_coding_conventions.md`](./docs/08_coding_conventions.md) | Naming, imports, error handling, logging, testing |
-
-[`decisions.md`](./docs/decisions.md) is the running log. Every non-obvious choice is recorded at
-commit time as a `D-Pxx-x` entry with its alternative and the reason the alternative lost —
-written when the decision was made, not reconstructed afterward.
+The product was specified in eight design docs before any implementation code, and every non-obvious choice was logged in a decisions file as it was made. Both are kept private; happy to share them on request.
 
 ---
 
